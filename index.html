@@ -1,13 +1,76 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Windster Vue Dashboard</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  
+  <!-- Meta Tags -->
+  <meta name="description" content="Modern Vue.js dashboard template with Tailwind CSS">
+  <meta name="keywords" content="vue, dashboard, tailwind, components">
+  <meta name="author" content="Themesberg">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Windster Vue Dashboard">
+  <meta property="og:description" content="Modern Vue.js dashboard template with Tailwind CSS">
+  <meta property="og:image" content="/images/og-image.jpg">
+  <meta property="og:url" content="https://windster-vue.themesberg.com">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Windster Vue Dashboard">
+  <meta name="twitter:description" content="Modern Vue.js dashboard template with Tailwind CSS">
+  <meta name="twitter:image" content="/images/og-image.jpg">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Preload Critical Resources -->
+  <link rel="preload" href="/images/logo.svg" as="image">
+  
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#3b82f6">
+  
+  <!-- Apple Touch Icon -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Windster">
+  
+  <!-- Microsoft Tiles -->
+  <meta name="msapplication-TileColor" content="#3b82f6">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+  
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  
+  <!-- Performance -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//fonts.gstatic.com">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading fallback -->
+    <div class="min-h-screen flex items-center justify-center bg-gray-50">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts will be injected here by build tool -->
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>
