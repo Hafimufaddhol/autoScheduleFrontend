@@ -1,115 +1,47 @@
 <template>
   <div class="min-h-screen" :class="bodyClass">
+    <!-- Sidebar -->
+    <Sidebar />
+
     <!-- Navbar -->
-    <Navbar 
-      :sidebar-open="sidebarOpen"
-      :brand-name="brandName"
-      :logo-url="logoUrl"
-      :right-text="rightText"
-      :github-url="githubUrl"
-      :show-mobile-search="showMobileSearch"
-      :show-user-menu="showUserMenu"
-      :user-name="userName"
-      :user-avatar="userAvatar"
-      :user-menu-items="userMenuItems"
+    <Navbar
       @toggle-sidebar="toggleSidebar"
       @search="handleSearch"
-      @user-menu-click="handleUserMenuClick"
     />
 
-    <!-- Dashboard Layout -->
-    <DashboardLayout 
-      :show-footer="showFooter"
-      :brand-name="brandName"
-      :show-mobile-search="showMobileSearch"
-      @search="handleSearch"
-    >
+    <!-- Main Content -->
+    <main class="pt-16 lg:pl-64">
       <slot></slot>
-    </DashboardLayout>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
+import { useSidebar } from '@/composables/useSidebar.js'
 import Navbar from './Navbar.vue'
-import DashboardLayout from './DashboardLayout.vue'
+import Sidebar from './Sidebar.vue'
 
 // Props
 const props = defineProps({
-  bodyClass: {
-    type: String,
-    default: 'bg-gray-50'
-  },
-  brandName: {
-    type: String,
-    default: 'Windster'
-  },
-  logoUrl: {
-    type: String,
-    default: '/images/logo.svg'
-  },
-  rightText: {
-    type: String,
-    default: 'Open source ❤️'
-  },
-  githubUrl: {
-    type: String,
-    default: 'https://github.com/themesberg/windster-tailwind-css-dashboard'
-  },
-  showMobileSearch: {
-    type: Boolean,
-    default: true
-  },
-  showFooter: {
-    type: Boolean,
-    default: true
-  },
-  showUserMenu: {
-    type: Boolean,
-    default: false
-  },
-  userName: {
-    type: String,
-    default: 'User'
-  },
-  userAvatar: {
-    type: String,
-    default: '/images/users/bonnie-green.png'
-  },
-  userMenuItems: {
-    type: Array,
-    default: () => [
-      { name: 'Your Profile', href: '/profile' },
-      { name: 'Settings', href: '/settings' },
-      { name: 'Sign out', href: '/logout' }
-    ]
-  }
+  bodyClass: { type: String, default: 'bg-gray-50' }
 })
 
-// Emits
-const emit = defineEmits(['search', 'user-menu-click'])
+// Composable Sidebar
+const { toggle, checkMobile } = useSidebar()
 
-// Reactive data
-const sidebarOpen = ref(false)
-
-// Methods
-const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
-}
-
+const toggleSidebar = () => toggle()
 const handleSearch = (query) => {
-  emit('search', query)
+  console.log('Search query:', query)
 }
 
-const handleUserMenuClick = (item) => {
-  emit('user-menu-click', item)
-}
+// Detect mobile resize
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
 
-// Expose methods for parent components
-defineExpose({
-  openSidebar: () => { sidebarOpen.value = true },
-  closeSidebar: () => { sidebarOpen.value = false },
-  toggleSidebar
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
-
