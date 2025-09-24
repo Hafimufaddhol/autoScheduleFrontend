@@ -24,6 +24,8 @@ export function useTable(initialData = [], options = {}) {
   const filters = reactive(config.filters)
   const loading = ref(config.loading)
   const selectedRows = ref([])
+  const pageSize = ref(config.pageSize)
+
   
   // Computed
   const filteredData = computed(() => {
@@ -70,15 +72,14 @@ export function useTable(initialData = [], options = {}) {
   })
   
   const paginatedData = computed(() => {
-    const start = (currentPage.value - 1) * config.pageSize
-    const end = start + config.pageSize
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
     return sortedData.value.slice(start, end)
   })
   
   const totalPages = computed(() => {
-    return Math.ceil(sortedData.value.length / config.pageSize)
+    return Math.ceil(sortedData.value.length / pageSize.value)
   })
-  
   const totalItems = computed(() => {
     return sortedData.value.length
   })
@@ -92,13 +93,13 @@ export function useTable(initialData = [], options = {}) {
   })
   
   const startItem = computed(() => {
-    return (currentPage.value - 1) * config.pageSize + 1
+    return (currentPage.value - 1) * pageSize.value + 1
   })
   
   const endItem = computed(() => {
-    return Math.min(currentPage.value * config.pageSize, totalItems.value)
+    return Math.min(currentPage.value * pageSize.value, totalItems.value)
   })
-  
+
   const isAllSelected = computed(() => {
     return selectedRows.value.length === paginatedData.value.length && paginatedData.value.length > 0
   })
@@ -237,6 +238,12 @@ export function useTable(initialData = [], options = {}) {
       filters[key] = null
     })
   }
+
+  const setPageSize = (size) => {
+    pageSize.value = size
+    currentPage.value = 1
+  }
+  
   
   return {
     // State
@@ -249,6 +256,7 @@ export function useTable(initialData = [], options = {}) {
     filters,
     loading,
     selectedRows,
+    pageSize,
     
     // Computed
     filteredData,
@@ -275,6 +283,7 @@ export function useTable(initialData = [], options = {}) {
     goToPage,
     nextPage,
     previousPage,
+    setPageSize,
     selectRow,
     deselectRow,
     toggleRowSelection,

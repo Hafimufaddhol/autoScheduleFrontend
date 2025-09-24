@@ -115,7 +115,7 @@
             :disabled="pagination.currentPage === totalPages"
             @click="nextPage"
           >
-            Next
+            Next  
           </button>
         </li>
       </ul>
