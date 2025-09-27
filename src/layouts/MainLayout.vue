@@ -11,7 +11,7 @@
 
     <!-- Main Content -->
     <main class="pt-16 lg:pl-64">
-      <slot></slot>
+      <router-view />
     </main>
   </div>
 </template>

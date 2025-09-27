@@ -148,11 +148,11 @@ const props = defineProps({
   },
   brandName: {
     type: String,
-    default: 'Windster'
+    default: 'Kesmas'
   },
   logoUrl: {
     type: String,
-    default: '/images/logo.svg'
+    default: '../assets/images/logo.svg'
   },
   rightText: {
     type: String,

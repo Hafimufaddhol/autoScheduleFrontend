@@ -156,7 +156,7 @@ body {
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --color-bg: #111827;
     --color-text: #f9fafb;
@@ -171,7 +171,7 @@ body {
   .card {
     @apply bg-gray-800 border-gray-700;
   }
-}
+} */
 
 /* Accessibility */
 .sr-only {

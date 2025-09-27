@@ -1,15 +1,25 @@
 <template>
     <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-gray-200 ">
+            <thead class="bg-gray-100">
                 <tr>
                     <th v-for="col in columns" :key="col.key" scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide cursor-pointer select-none"
                         @click="$emit('sort', { key: col.key })">
-                        {{ col.label }}
+                        <div class="flex items-center space-x-1">
+                            <span>{{ col.label }}</span>
+                            <!-- Ikon Sort -->
+                            <i v-if="sortKey === col.key" :class="[
+                                sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down',
+                                'text-gray-600 text-xs'
+                            ]"></i>
+                            <i v-else class="fas fa-sort text-gray-400 text-xs"></i>
+                        </div>
                     </th>
+
+
                     <th v-if="showActions" scope="col"
-                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide cursor-pointer">
                         Action
                     </th>
                 </tr>
@@ -40,14 +50,22 @@
                         </slot>
                     </td>
 
-                    <td v-if="showActions" class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                        <button class="text-cyan-600 hover:text-cyan-900" @click="$emit('edit', row)">
-                            Edit
+                    <td v-if="showActions" class="p-4 whitespace-nowrap space-x-2 text-right">
+                        <!-- Edit Button -->
+                        <button type="button" @click="$emit('edit', row)"
+                            class="text-white bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-200 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button class="text-red-600 hover:text-red-900" @click="$emit('delete', row)">
-                            Delete
+
+                        <!-- Delete Button -->
+                        <button type="button" @click="$emit('delete', row)"
+                            class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </td>
+
+
+
                 </tr>
             </tbody>
         </table>
@@ -111,6 +129,8 @@
 </template>
 
 <script setup>
+
+
 defineProps({
     data: { type: Array, required: true },
     columns: { type: Array, required: true },
@@ -119,7 +139,10 @@ defineProps({
     showPagination: { type: Boolean, default: false },
     currentPage: { type: Number, default: 1 },
     totalPages: { type: Number, default: 1 },
-    totalItems: { type: Number, default: 0 },   // 🔥 jumlah total data
+    totalItems: { type: Number, default: 0 },
     pageSize: { type: Number, default: 10 },
+    sortKey: { type: String, default: null },   // 🔥 tambahan
+    sortOrder: { type: String, default: null }, // 🔥 tambahan
 })
+
 </script>

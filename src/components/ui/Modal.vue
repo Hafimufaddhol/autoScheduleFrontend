@@ -93,6 +93,7 @@
 
 <script setup>
 import { computed, watch, nextTick } from 'vue'
+import { onUnmounted } from 'vue'
 
 // Props
 const props = defineProps({
@@ -305,7 +306,7 @@ watch(() => props.isOpen, (isOpen) => {
 })
 
 // Cleanup on unmount
-import { onUnmounted } from 'vue'
+
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleEscape)

@@ -129,7 +129,7 @@
 import { ref, reactive } from 'vue'
 import Card from '../ui/Card.vue'
 import Input from '../ui/Input.vue'
-import Button from '../ui/Button.vue'
+import Button from '../ui/BaseButton.vue'
 
 // Props
 const props = defineProps({
