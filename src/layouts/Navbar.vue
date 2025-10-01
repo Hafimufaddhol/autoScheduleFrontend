@@ -168,7 +168,7 @@ const props = defineProps({
   },
   showUserMenu: {
     type: Boolean,
-    default: false
+    default: true
   },
   userName: {
     type: String,
@@ -176,7 +176,7 @@ const props = defineProps({
   },
   userAvatar: {
     type: String,
-    default: '/images/users/bonnie-green.png'
+    default: '../assets/images/user.png'
   },
   userMenuItems: {
     type: Array,

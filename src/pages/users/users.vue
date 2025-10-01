@@ -76,8 +76,10 @@
 </template>
 
 <script setup>
+import { onMounted } from "vue";
 import MyTable from "@/components/ui/MyTable.vue";
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { apiUser } from "@/repositories/usersRepositories.js";
 import { watchEffect } from "vue";
 import { useTable } from "@/composables/useTable.js";
 
@@ -127,16 +129,10 @@ watchEffect(() => {
 
 
 // Dummy data load
-setData([
-  { id: 1, name: "Neil Sims", email: "neil.sims@windster.com", position: "Front-end Developer", country: "US", status: "active", role: "admin" },
-  { id: 2, name: "Bonnie Green", email: "bonnie.green@windster.com", position: "Designer", country: "UK", status: "inactive", role: "editor" },
-  { id: 3, name: "Michael Gough", email: "michael.gough@windster.com", position: "SEO Specialist", country: "Canada", status: "active", role: "viewer" },
-  { id: 4, name: "Sarah Johnson", email: "sarah.johnson@windster.com", position: "Backend Developer", country: "Germany", status: "active", role: "admin" },
-  { id: 5, name: "James Smith", email: "james.smith@windster.com", position: "Project Manager", country: "Australia", status: "inactive", role: "editor" },
-  { id: 6, name: "Emily Davis", email: "emily.davis@windster.com", position: "UI/UX Designer", country: "France", status: "active", role: "viewer" },
-  { id: 7, name: "William Brown", email: "william.brown@windster.com", position: "DevOps Engineer", country: "India", status: "active", role: "admin" },
-  { id: 8, name: "Olivia Miller", email: "olivia.miller@windster.com", position: "QA Engineer", country: "Japan", status: "inactive", role: "editor" },
-]);
+onMounted(async () => {
+  const users = await apiUser.fetch();
+  setData(users);
+});
 
 const toggleSort = ({ key }) => {
   if (sortBy.value === key) {
