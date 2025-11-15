@@ -72,7 +72,7 @@
 
           <!-- Right side items -->
           <div class="hidden lg:flex items-center">
-            <span class="text-base font-normal text-gray-500 mr-5">{{ rightText }}</span>
+            <span class="text-base font-normal text-gray-500 mr-5">{{ userName }}</span>
             <div class="-mb-1">
               <a 
                 v-if="githubUrl"
@@ -84,7 +84,7 @@
                 data-show-count="true" 
                 :aria-label="`Star ${githubUrl} on GitHub`"
               >
-                Star
+                
               </a>
             </div>
           </div>
@@ -95,14 +95,14 @@
               <button 
                 @click="toggleUserMenu"
                 type="button" 
-                class="bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" 
+                class="bg-gray-300 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" 
                 id="user-menu-button" 
                 aria-expanded="false" 
                 aria-haspopup="true"
               >
                 <span class="sr-only">Open user menu</span>
                 <img 
-                  class="h-8 w-8 rounded-full" 
+                  class="h-8 w-8 rounded-full m-1" 
                   :src="userAvatar" 
                   :alt="userName"
                 >
@@ -139,6 +139,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import defaultAvatar from '@/assets/images/user.png'
+import logo from '@/assets/images/logo.svg'
 
 // Props
 const props = defineProps({
@@ -152,11 +154,11 @@ const props = defineProps({
   },
   logoUrl: {
     type: String,
-    default: '../assets/images/logo.svg'
+    default: logo
   },
   rightText: {
     type: String,
-    default: 'Open source ❤️'
+    default: ''
   },
   githubUrl: {
     type: String,
@@ -176,7 +178,7 @@ const props = defineProps({
   },
   userAvatar: {
     type: String,
-    default: '../assets/images/user.png'
+    default: defaultAvatar
   },
   userMenuItems: {
     type: Array,

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { MainLayout } from '../layouts'
 import { Dashboard, Users } from '../pages'
 import LoginPage from '../pages/auth/Login.vue' // halaman login kamu
+import JadwalView from '../pages/jadwal/JadwalView.vue'
 // import { useAuth } from '../composables/useAuth'
 import { useAuthStore } from '../stores/auth'
 
@@ -21,6 +22,11 @@ const routes = [
         path: '',
         name: 'Dashboard',
         component: Dashboard
+      },
+      {
+        path: 'jadwal',
+        name: 'Jadwal',
+        component: JadwalView
       },
       {
         path: 'users',

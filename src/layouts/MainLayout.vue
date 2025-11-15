@@ -5,6 +5,7 @@
 
     <!-- Navbar -->
     <Navbar
+    :userName="currentUserName"
       @toggle-sidebar="toggleSidebar"
       @search="handleSearch"
     />
@@ -17,10 +18,12 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useSidebar } from '@/composables/useSidebar.js'
 import Navbar from './Navbar.vue'
 import Sidebar from './Sidebar.vue'
+
+const currentUserName = ref('User')
 
 // Props
 const props = defineProps({
@@ -35,8 +38,17 @@ const handleSearch = (query) => {
   console.log('Search query:', query)
 }
 
-// Detect mobile resize
 onMounted(() => {
+  const storedUser = localStorage.getItem("user")
+  if (storedUser) {
+    try {
+      const parsed = JSON.parse(storedUser)
+      currentUserName.value = parsed.name
+    } catch (e) {
+      console.error("Error parsing user:", e)
+    }
+  }
+
   checkMobile()
   window.addEventListener('resize', checkMobile)
 })

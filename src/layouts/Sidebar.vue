@@ -59,6 +59,7 @@ const route = useRoute()
 // Navigation items (Font Awesome classes)
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: 'fa-solid fa-gauge' },
+  { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
   { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
   // { name: 'Products', href: '/products', icon: 'fa-solid fa-box' },
 ]
