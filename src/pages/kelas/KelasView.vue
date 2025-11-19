@@ -37,7 +37,7 @@
               <th @click="toggleSort('kode')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
                 Kode <span v-if="sortBy === 'kode'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jurusan</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paket</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
@@ -53,7 +53,7 @@
               <td class="px-6 py-4 whitespace-nowrap">{{ kelas.nama }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ kelas.kode }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <Badge :text="kelas.jurusan" color="green" />
+                <Badge :label="kelas.paket || kelas.jurusan"  />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ kelas.tingkat }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -92,17 +92,14 @@
           <Input v-model="form.kode" label="Kode Kelas" placeholder="Contoh: XI-IPA-1" required />
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Jurusan</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Paket</label>
             <select
-              v-model="form.jurusan"
+              v-model="form.paket"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="">Pilih Jurusan</option>
-              <option value="IPA">IPA</option>
-              <option value="IPS">IPS</option>
-              <option value="Bahasa">Bahasa</option>
-              <option value="Umum">Umum</option>
+              <option value="">Pilih Paket</option>
+              <option v-for="p in paketOptions" :key="p" :value="p">{{ p }}</option>
             </select>
           </div>
 
@@ -146,6 +143,7 @@
 import { ref, onMounted } from 'vue'
 import { Card, Alert, Badge, Input, Modal } from '@/components/ui'
 import kelasRepository from '@/repositories/kelasRepository'
+import konfigurasiRepository from '@/repositories/konfigurasiRepository'
 
 const kelasList = ref([])
 const meta = ref(null)
@@ -163,9 +161,11 @@ const currentId = ref(null)
 const form = ref({
   nama: '',
   kode: '',
-  jurusan: '',
+  paket: '',
   tingkat: ''
 })
+
+const paketOptions = ref([])
 
 const alert = ref({
   show: false,
@@ -207,6 +207,19 @@ const fetchKelas = async () => {
   }
 }
 
+const fetchPaket = async () => {
+  try {
+    const res = await konfigurasiRepository.getPaket()
+    // Add special 'Umum' as an option for kelas
+    const arr = Array.isArray(res.paket) ? res.paket.slice() : []
+    if (!arr.includes('Umum')) arr.push('Umum')
+    paketOptions.value = arr
+  } catch (e) {
+    paketOptions.value = ['Umum']
+    console.error(e)
+  }
+}
+
 const reloadPage = () => { page.value = 1; fetchKelas() }
 const handleSearch = () => { page.value = 1; fetchKelas() }
 const nextPage = () => { if (meta.value && page.value < meta.value.pagination.total_pages) { page.value++; fetchKelas() } }
@@ -226,7 +239,7 @@ const openCreateModal = () => {
   form.value = {
     nama: '',
     kode: '',
-    jurusan: '',
+    paket: '',
     tingkat: ''
   }
   showModal.value = true
@@ -238,7 +251,7 @@ const openEditModal = (kelas) => {
   form.value = {
     nama: kelas.nama,
     kode: kelas.kode,
-    jurusan: kelas.jurusan,
+    paket: kelas.paket || kelas.jurusan,
     tingkat: kelas.tingkat
   }
   showModal.value = true
@@ -284,5 +297,6 @@ const handleDelete = async (id) => {
 
 onMounted(() => {
   fetchKelas()
+  fetchPaket()
 })
 </script>

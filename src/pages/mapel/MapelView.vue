@@ -39,7 +39,7 @@
                 Kode
                 <span v-if="sortBy === 'kode'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jurusan Tertentu</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paket Tertentu</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat Tertentu</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
@@ -54,15 +54,15 @@
             <tr v-else v-for="mapel in mapels" :key="mapel.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">{{ mapel.nama }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <Badge :text="mapel.kode" color="purple" />
+                <Badge :label="mapel.kode" variant="primary" />
               </td>
               <td class="px-6 py-4">
-                <span v-if="mapel.jurusan_tertentu && mapel.jurusan_tertentu.length > 0">
+                <span v-if="(mapel.paket_tertentu && mapel.paket_tertentu.length) || (mapel.jurusan_tertentu && mapel.jurusan_tertentu.length)">
                   <Badge
-                    v-for="jur in mapel.jurusan_tertentu"
+                    v-for="jur in (mapel.paket_tertentu && mapel.paket_tertentu.length ? mapel.paket_tertentu : mapel.jurusan_tertentu)"
                     :key="jur"
-                    :text="jur"
-                    color="green"
+                    :label="jur"
+                    variant="success"
                     class="mr-1"
                   />
                 </span>
@@ -110,15 +110,15 @@
           <Input v-model="form.kode" label="Kode Mapel" placeholder="Contoh: MATH" required />
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Jurusan Tertentu</label>
-            <p class="text-xs text-gray-500 mb-2">Kosongkan jika untuk semua jurusan</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Paket Tertentu</label>
+            <p class="text-xs text-gray-500 mb-2">Kosongkan jika untuk semua paket</p>
             <div class="space-y-2">
-              <div v-for="jur in jurusanOptions" :key="jur" class="flex items-center">
+              <div v-for="jur in paketOptions" :key="jur" class="flex items-center">
                 <input
                   type="checkbox"
                   :id="'jur-' + jur"
                   :value="jur"
-                  v-model="form.jurusan_tertentu"
+                  v-model="form.paket_tertentu"
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label :for="'jur-' + jur" class="ml-2 block text-sm text-gray-900">{{ jur }}</label>
@@ -169,6 +169,7 @@
 import { ref, onMounted } from 'vue'
 import { Card, Alert, Badge, Input, Modal } from '@/components/ui'
 import mapelRepository from '@/repositories/mapelRepository'
+import konfigurasiRepository from '@/repositories/konfigurasiRepository'
 
 const mapels = ref([])
 const meta = ref(null)
@@ -186,11 +187,11 @@ const currentId = ref(null)
 const form = ref({
   nama: '',
   kode: '',
-  jurusan_tertentu: [],
+  paket_tertentu: [],
   tingkat_tertentu: []
 })
 
-const jurusanOptions = ['IPA', 'IPS', 'Bahasa', 'Umum']
+const paketOptions = ref([])
 const tingkatOptions = [10, 11, 12]
 
 const alert = ref({
@@ -233,6 +234,17 @@ const fetchMapels = async () => {
   }
 }
 
+const fetchPaket = async () => {
+  try {
+    const res = await konfigurasiRepository.getPaket()
+    // Do not include 'Umum' because empty selection represents umum
+    paketOptions.value = Array.isArray(res.paket) ? res.paket : []
+  } catch (e) {
+    paketOptions.value = []
+    console.error(e)
+  }
+}
+
 const reloadPage = () => { page.value = 1; fetchMapels() }
 const handleSearch = () => { page.value = 1; fetchMapels() }
 const nextPage = () => { if (meta.value && page.value < meta.value.pagination.total_pages) { page.value++; fetchMapels() } }
@@ -252,7 +264,7 @@ const openCreateModal = () => {
   form.value = {
     nama: '',
     kode: '',
-    jurusan_tertentu: [],
+    paket_tertentu: [],
     tingkat_tertentu: []
   }
   showModal.value = true
@@ -264,7 +276,7 @@ const openEditModal = (mapel) => {
   form.value = {
     nama: mapel.nama,
     kode: mapel.kode,
-    jurusan_tertentu: mapel.jurusan_tertentu || [],
+    paket_tertentu: (mapel.paket_tertentu && mapel.paket_tertentu.length ? mapel.paket_tertentu : (mapel.jurusan_tertentu || [])),
     tingkat_tertentu: mapel.tingkat_tertentu || []
   }
   showModal.value = true
@@ -277,11 +289,12 @@ const closeModal = () => {
 const handleSubmit = async () => {
   submitting.value = true
   try {
+    const payload = { ...form.value, jurusan_tertentu: form.value.paket_tertentu }
     if (isEdit.value) {
-      await mapelRepository.update(currentId.value, form.value)
+      await mapelRepository.update(currentId.value, payload)
       showAlert('success', 'Mapel berhasil diupdate')
     } else {
-      await mapelRepository.create(form.value)
+      await mapelRepository.create(payload)
       showAlert('success', 'Mapel berhasil ditambahkan')
     }
 
@@ -310,5 +323,6 @@ const handleDelete = async (id) => {
 
 onMounted(() => {
   fetchMapels()
+  fetchPaket()
 })
 </script>

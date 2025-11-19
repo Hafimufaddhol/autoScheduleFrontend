@@ -57,7 +57,7 @@
               <td class="px-6 py-4 whitespace-nowrap">{{ guru.kode }}</td>
               <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                  <Badge v-for="(val, mapelId) in guru.kompetensi" :key="mapelId" :text="mapelId" color="blue" />
+                  <Badge v-for="(val, mapelId) in guru.kompetensi" :key="mapelId" :label="mapelId" variant="primary" />
                 </div>
               </td>
               <td class="px-6 py-4">
@@ -272,7 +272,9 @@ const toggleSort = (field) => {
 
 const fetchMapels = async () => {
   try {
-    const response = await mapelRepository.getAll()
+    const response = await mapelRepository.getAll(({
+  pageSize: 1000,
+}))
     availableMapels.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('Gagal memuat mapel:', error)
