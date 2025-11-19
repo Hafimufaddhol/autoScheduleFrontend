@@ -150,7 +150,7 @@ const props = defineProps({
   },
   brandName: {
     type: String,
-    default: 'Kesmas'
+    default: ''
   },
   logoUrl: {
     type: String,

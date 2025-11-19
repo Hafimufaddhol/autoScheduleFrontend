@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { MainLayout } from '../layouts'
-import { Dashboard, Users } from '../pages'
+import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView, KelasRulesView } from '../pages'
 import LoginPage from '../pages/auth/Login.vue' // halaman login kamu
 import JadwalView from '../pages/jadwal/JadwalView.vue'
 // import { useAuth } from '../composables/useAuth'
@@ -29,10 +29,35 @@ const routes = [
         component: JadwalView
       },
       {
-        path: 'users',
-        name: 'Users',
-        component: Users
-      }
+        path: 'guru',
+        name: 'Guru',
+        component: GuruView
+      },
+      {
+        path: 'kelas',
+        name: 'Kelas',
+        component: KelasView
+      },
+      {
+        path: 'kelas-rules',
+        name: 'KelasRules',
+        component: KelasRulesView
+      },
+      {
+        path: 'mapel',
+        name: 'Mapel',
+        component: MapelView
+      },
+      {
+        path: 'konfigurasi',
+        name: 'Konfigurasi',
+        component: KonfigurasiView
+      },
+      // {
+      //   path: 'users',
+      //   name: 'Users',
+      //   component: Users
+      // }
     ]
   }
 ]

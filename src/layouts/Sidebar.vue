@@ -60,13 +60,16 @@ const route = useRoute()
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: 'fa-solid fa-gauge' },
   { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
-  { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
-  // { name: 'Products', href: '/products', icon: 'fa-solid fa-box' },
+  { name: 'Guru', href: '/guru', icon: 'fa-solid fa-chalkboard-user' },
+  { name: 'Kelas', href: '/kelas', icon: 'fa-solid fa-door-open' },
+  { name: 'Aturan Kelas', href: '/kelas-rules', icon: 'fa-solid fa-clipboard-list' },
+  { name: 'Mata Pelajaran', href: '/mapel', icon: 'fa-solid fa-book' },
+  { name: 'Konfigurasi', href: '/konfigurasi', icon: 'fa-solid fa-gear' },
+  // { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
 ]
 
 // Bottom items (opsional)
 const bottomItems = [
-  { name: 'Settings', href: '/settings', icon: 'fa-solid fa-gear' },
   { name: 'Logout', href: '/logout', icon: 'fa-solid fa-right-from-bracket' },
 ]
 

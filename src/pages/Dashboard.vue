@@ -3,265 +3,228 @@
     <!-- Page Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-      <p class="mt-2 text-gray-600">Welcome back! Here's what's happening with your projects today.</p>
+      <p class="mt-2 text-gray-600">Selamat datang di Sistem Penjadwalan Otomatis</p>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <Card v-for="stat in stats" :key="stat.title" class="hover:shadow-lg transition-shadow">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div :class="stat.iconBg" class="w-8 h-8 rounded-md flex items-center justify-center">
-              <component :is="stat.icon" :class="stat.iconColor" class="w-5 h-5" />
-            </div>
+      <Card class="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-blue-100 text-sm">Total Guru</p>
+            <h3 class="text-3xl font-bold mt-1">{{ stats.guru }}</h3>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">{{ stat.title }}</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ stat.value }}</p>
-            <p v-if="stat.change" :class="stat.changeColor" class="text-sm">
-              {{ stat.change }}
-            </p>
+          <div class="bg-white bg-opacity-20 rounded-full p-4">
+            <i class="fa-solid fa-chalkboard-user text-3xl"></i>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="bg-gradient-to-br from-green-500 to-green-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-green-100 text-sm">Total Kelas</p>
+            <h3 class="text-3xl font-bold mt-1">{{ stats.kelas }}</h3>
+          </div>
+          <div class="bg-white bg-opacity-20 rounded-full p-4">
+            <i class="fa-solid fa-door-open text-3xl"></i>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-purple-100 text-sm">Mata Pelajaran</p>
+            <h3 class="text-3xl font-bold mt-1">{{ stats.mapel }}</h3>
+          </div>
+          <div class="bg-white bg-opacity-20 rounded-full p-4">
+            <i class="fa-solid fa-book text-3xl"></i>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-orange-100 text-sm">Jadwal Aktif</p>
+            <h3 class="text-3xl font-bold mt-1">{{ stats.jadwal }}</h3>
+          </div>
+          <div class="bg-white bg-opacity-20 rounded-full p-4">
+            <i class="fa-solid fa-calendar-days text-3xl"></i>
           </div>
         </div>
       </Card>
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <!-- Revenue Chart -->
-      <Card title="Revenue Overview" subtitle="Monthly revenue for the past 12 months">
-        <div class="h-64">
-          <LineChart :data="revenueData" :options="chartOptions" />
-        </div>
-      </Card>
-
-      <!-- Sales Chart -->
-      <Card title="Sales by Category" subtitle="Product sales distribution">
-        <div class="h-64">
-          <BarChart :data="salesData" :options="chartOptions" />
-        </div>
-      </Card>
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Recent Orders -->
-      <Card title="Recent Orders" class="lg:col-span-2">
-        <Table
-          :data="recentOrders"
-          :columns="orderColumns"
-          :loading="loading"
-          show-actions
-          @edit="handleEditOrder"
-          @delete="handleDeleteOrder"
+    <!-- Quick Actions -->
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <button
+          @click="$router.push('/guru')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-blue-300"
         >
-          <template #cell-status="{ value }">
-            <Badge 
-              :variant="getStatusVariant(value)" 
-              :label="value"
-            />
-          </template>
-        </Table>
-      </Card>
-
-      <!-- Top Customers -->
-      <Card title="Top Customers">
-        <div class="space-y-4">
-          <div 
-            v-for="customer in topCustomers" 
-            :key="customer.id"
-            class="flex items-center space-x-3"
-          >
-            <img 
-              :src="customer.avatar" 
-              :alt="customer.name"
-              class="w-10 h-10 rounded-full"
-            >
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900 truncate">
-                {{ customer.name }}
-              </p>
-              <p class="text-sm text-gray-500">
-                {{ formatCurrency(customer.total) }}
-              </p>
-            </div>
+          <div class="bg-blue-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-chalkboard-user text-blue-600 text-xl"></i>
           </div>
-        </div>
-      </Card>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Kelola Guru</p>
+            <p class="text-sm text-gray-600">Tambah atau edit data guru</p>
+          </div>
+        </button>
+
+        <button
+          @click="$router.push('/kelas')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-green-300"
+        >
+          <div class="bg-green-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-door-open text-green-600 text-xl"></i>
+          </div>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Kelola Kelas</p>
+            <p class="text-sm text-gray-600">Tambah atau edit data kelas</p>
+          </div>
+        </button>
+
+        <button
+          @click="$router.push('/mapel')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-purple-300"
+        >
+          <div class="bg-purple-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-book text-purple-600 text-xl"></i>
+          </div>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Kelola Mapel</p>
+            <p class="text-sm text-gray-600">Tambah atau edit mata pelajaran</p>
+          </div>
+        </button>
+
+        <button
+          @click="$router.push('/konfigurasi')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-yellow-300"
+        >
+          <div class="bg-yellow-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-gear text-yellow-600 text-xl"></i>
+          </div>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Konfigurasi</p>
+            <p class="text-sm text-gray-600">Setting sistem penjadwalan</p>
+          </div>
+        </button>
+
+        <button
+          @click="$router.push('/kelas-rules')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-red-300"
+        >
+          <div class="bg-red-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-list-check text-red-600 text-xl"></i>
+          </div>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Rules Kelas</p>
+            <p class="text-sm text-gray-600">Atur rules per kelas</p>
+          </div>
+        </button>
+
+        <button
+          @click="$router.push('/jadwal')"
+          class="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 hover:border-indigo-300"
+        >
+          <div class="bg-indigo-100 rounded-lg p-3 mr-4">
+            <i class="fa-solid fa-calendar-days text-indigo-600 text-xl"></i>
+          </div>
+          <div class="text-left">
+            <p class="font-semibold text-gray-900">Generate Jadwal</p>
+            <p class="text-sm text-gray-600">Buat jadwal otomatis</p>
+          </div>
+        </button>
+      </div>
     </div>
+
+    <!-- System Info -->
+    <Card>
+      <template #header>
+        <h3 class="text-lg font-semibold text-gray-900">Informasi Sistem</h3>
+      </template>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Max JP Guru Per Minggu</span>
+          <span class="font-semibold text-gray-900">{{ konfigurasi.max_jp_per_guru || '-' }}</span>
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Default Slot Per Hari</span>
+          <span class="font-semibold text-gray-900">{{ konfigurasi.default_slot_per_hari || '-' }}</span>
+        </div>
+        <div class="flex items-center justify-between py-2">
+          <span class="text-gray-600">Hari Kerja</span>
+          <span class="font-semibold text-gray-900">{{ konfigurasi.hari_kerja?.join(', ') || '-' }}</span>
+        </div>
+      </div>
+    </Card>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Card, Table, Badge } from '../components/ui'
-import { LineChart, BarChart } from '../components/charts'
-import { formatCurrency } from '../utils/helpers'
+import { Card } from '../components/ui'
+import guruRepository from '../repositories/guruRepository'
+import kelasRepository from '../repositories/kelasRepository'
+import mapelRepository from '../repositories/mapelRepository'
+import konfigurasiRepository from '../repositories/konfigurasiRepository'
+import jadwalRepository from '../repositories/jadwalRepository'
 
 // Reactive data
-const loading = ref(false)
-const stats = ref([
-  {
-    title: 'Total Revenue',
-    value: '$45,231',
-    change: '+20.1% from last month',
-    changeColor: 'text-green-600',
-    icon: 'CurrencyDollarIcon',
-    iconBg: 'bg-green-100',
-    iconColor: 'text-green-600'
-  },
-  {
-    title: 'Total Orders',
-    value: '2,350',
-    change: '+15.3% from last month',
-    changeColor: 'text-green-600',
-    icon: 'ShoppingBagIcon',
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600'
-  },
-  {
-    title: 'Active Users',
-    value: '1,234',
-    change: '+5.2% from last month',
-    changeColor: 'text-green-600',
-    icon: 'UsersIcon',
-    iconBg: 'bg-purple-100',
-    iconColor: 'text-purple-600'
-  },
-  {
-    title: 'Conversion Rate',
-    value: '3.2%',
-    change: '-2.1% from last month',
-    changeColor: 'text-red-600',
-    icon: 'ChartBarIcon',
-    iconBg: 'bg-yellow-100',
-    iconColor: 'text-yellow-600'
-  }
-])
-
-const recentOrders = ref([
-  {
-    id: 1,
-    customer: 'John Doe',
-    product: 'MacBook Pro',
-    amount: 2499,
-    status: 'Completed',
-    date: '2024-01-15'
-  },
-  {
-    id: 2,
-    customer: 'Jane Smith',
-    product: 'iPhone 15',
-    amount: 999,
-    status: 'Pending',
-    date: '2024-01-14'
-  },
-  {
-    id: 3,
-    customer: 'Bob Johnson',
-    product: 'iPad Air',
-    amount: 599,
-    status: 'Shipped',
-    date: '2024-01-13'
-  }
-])
-
-const topCustomers = ref([
-  {
-    id: 1,
-    name: 'Alice Cooper',
-    total: 5420,
-    avatar: '/images/users/bonnie-green.png'
-  },
-  {
-    id: 2,
-    name: 'David Wilson',
-    total: 3890,
-    avatar: '/images/users/jese-leos.png'
-  },
-  {
-    id: 3,
-    name: 'Sarah Brown',
-    total: 3240,
-    avatar: '/images/users/roberta-casas.png'
-  }
-])
-
-const orderColumns = ref([
-  { key: 'customer', label: 'Customer', sortable: true },
-  { key: 'product', label: 'Product', sortable: true },
-  { key: 'amount', label: 'Amount', sortable: true, formatter: (value) => formatCurrency(value) },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'date', label: 'Date', sortable: true, formatter: (value) => new Date(value).toLocaleDateString() }
-])
-
-const revenueData = ref({
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  datasets: [{
-    label: 'Revenue',
-    data: [12000, 19000, 15000, 25000, 22000, 30000, 28000, 35000, 32000, 40000, 38000, 45000],
-    borderColor: 'rgb(59, 130, 246)',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    tension: 0.4
-  }]
+const stats = ref({
+  guru: 0,
+  kelas: 0,
+  mapel: 0,
+  jadwal: 0
 })
 
-const salesData = ref({
-  labels: ['Electronics', 'Clothing', 'Books', 'Home', 'Sports'],
-  datasets: [{
-    label: 'Sales',
-    data: [65, 59, 80, 81, 56],
-    backgroundColor: [
-      'rgba(59, 130, 246, 0.8)',
-      'rgba(16, 185, 129, 0.8)',
-      'rgba(245, 158, 11, 0.8)',
-      'rgba(239, 68, 68, 0.8)',
-      'rgba(139, 92, 246, 0.8)'
-    ]
-  }]
-})
-
-const chartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false
-    }
-  },
-  scales: {
-    y: {
-      beginAtZero: true
-    }
-  }
+const konfigurasi = ref({
+  max_jp_per_guru: null,
+  default_slot_per_hari: null,
+  hari_kerja: []
 })
 
 // Methods
-const getStatusVariant = (status) => {
-  const variants = {
-    'Completed': 'success',
-    'Pending': 'warning',
-    'Shipped': 'info',
-    'Cancelled': 'danger'
+const loadStats = async () => {
+  try {
+    // Fetch guru count
+    const guruResponse = await guruRepository.getAll()
+    stats.value.guru = Array.isArray(guruResponse.data) ? guruResponse.data.length : 0
+
+    // Fetch kelas count
+    const kelasResponse = await kelasRepository.getAll()
+    stats.value.kelas = Array.isArray(kelasResponse.data) ? kelasResponse.data.length : 0
+
+    // Fetch mapel count
+    const mapelResponse = await mapelRepository.getAll()
+    stats.value.mapel = Array.isArray(mapelResponse.data) ? mapelResponse.data.length : 0
+
+    // Fetch jadwal count
+    const jadwalResponse = await jadwalRepository.getAll()
+    stats.value.jadwal = Array.isArray(jadwalResponse.data) ? jadwalResponse.data.length : 0
+  } catch (error) {
+    console.error('Error loading stats:', error)
   }
-  return variants[status] || 'default'
 }
 
-const handleEditOrder = ({ row }) => {
-  console.log('Edit order:', row)
-}
-
-const handleDeleteOrder = ({ row }) => {
-  console.log('Delete order:', row)
+const loadKonfigurasi = async () => {
+  try {
+    const response = await konfigurasiRepository.get()
+    if (response.data) {
+      konfigurasi.value = response.data
+    }
+  } catch (error) {
+    console.error('Error loading konfigurasi:', error)
+  }
 }
 
 // Lifecycle
 onMounted(() => {
-  // Load dashboard data
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-  }, 1000)
+  loadStats()
+  loadKonfigurasi()
 })
 </script>
 
