@@ -18,11 +18,11 @@ const routes = [
     component: MainLayout,
     meta: { requiresAuth: true }, // semua child butuh login
     children: [
-      {
-        path: '',
-        name: 'Dashboard',
-        component: Dashboard
-      },
+      // {
+      //   path: '',
+      //   name: 'Dashboard',
+      //   component: Dashboard
+      // },
       {
         path: 'jadwal',
         name: 'Jadwal',
@@ -53,11 +53,11 @@ const routes = [
         name: 'Konfigurasi',
         component: KonfigurasiView
       },
-      // {
-      //   path: 'users',
-      //   name: 'Users',
-      //   component: Users
-      // }
+      {
+        path: 'users',
+        name: 'Users',
+        component: Users
+      }
     ]
   }
 ]

@@ -1,14 +1,25 @@
 <template>
   <div class="p-6">
-    <div class="mb-6 flex justify-between items-center">
-      <h1 class="text-3xl font-bold text-gray-900">Data Mata Pelajaran</h1>
-      <button
-        @click="openCreateModal"
-        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
-      >
-        <i class="fa-solid fa-plus mr-2"></i>
-        Tambah Mapel
-      </button>
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Data Mata Pelajaran</h1>
+        <p class="text-gray-600 mt-1 text-sm">Server-side pagination, pencarian & sorting.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input v-model="searchQuery" @input="handleSearch" type="text" placeholder="Cari nama / kode" class="border px-3 py-2 rounded-lg text-sm w-60" />
+        <select v-model.number="pageSize" @change="reloadPage" class="border px-2 py-2 rounded-lg text-sm">
+          <option :value="5">5</option>
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+        </select>
+        <button
+          @click="openCreateModal"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+        >
+          <i class="fa-solid fa-plus mr-2"></i>
+          Tambah Mapel
+        </button>
+      </div>
     </div>
 
     <!-- Alert -->
@@ -20,8 +31,14 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+              <th @click="toggleSort('nama')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                Nama
+                <span v-if="sortBy === 'nama'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
+              </th>
+              <th @click="toggleSort('kode')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                Kode
+                <span v-if="sortBy === 'kode'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jurusan Tertentu</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat Tertentu</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -74,6 +91,14 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination footer -->
+      <div class="flex items-center justify-between mt-4 px-2" v-if="meta">
+        <p class="text-sm text-gray-600">Halaman {{ meta.pagination.page }} dari {{ meta.pagination.total_pages }} • Total {{ meta.pagination.total_items }} data</p>
+        <div class="flex items-center gap-2">
+          <button @click="prevPage" :disabled="meta.pagination.page <= 1" class="px-3 py-1 border rounded disabled:opacity-40">Prev</button>
+          <button @click="nextPage" :disabled="meta.pagination.page >= meta.pagination.total_pages" class="px-3 py-1 border rounded disabled:opacity-40">Next</button>
+        </div>
       </div>
     </Card>
 
@@ -146,6 +171,12 @@ import { Card, Alert, Badge, Input, Modal } from '@/components/ui'
 import mapelRepository from '@/repositories/mapelRepository'
 
 const mapels = ref([])
+const meta = ref(null)
+const page = ref(1)
+const pageSize = ref(10)
+const searchQuery = ref('')
+const sortBy = ref(null)
+const sortOrder = ref(null)
 const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -175,17 +206,44 @@ const showAlert = (type, message) => {
   }, 3000)
 }
 
+const buildOptions = () => ({
+  page: page.value,
+  pageSize: pageSize.value,
+  search: searchQuery.value || undefined,
+  sort: sortBy.value ? (sortOrder.value === 'desc' ? [`-${sortBy.value}`] : [sortBy.value]) : undefined,
+})
+
 const fetchMapels = async () => {
   loading.value = true
   try {
-    const response = await mapelRepository.getAll()
-    mapels.value = Array.isArray(response.data) ? response.data : []
+    const response = await mapelRepository.getAll(buildOptions())
+    if (Array.isArray(response.data)) {
+      mapels.value = response.data
+    } else if (Array.isArray(response)) {
+      mapels.value = response
+    } else {
+      mapels.value = []
+    }
+    meta.value = response.meta || null
   } catch (error) {
     showAlert('error', 'Gagal memuat data mapel')
     console.error('Error fetching mapels:', error)
   } finally {
     loading.value = false
   }
+}
+
+const reloadPage = () => { page.value = 1; fetchMapels() }
+const handleSearch = () => { page.value = 1; fetchMapels() }
+const nextPage = () => { if (meta.value && page.value < meta.value.pagination.total_pages) { page.value++; fetchMapels() } }
+const prevPage = () => { if (meta.value && page.value > 1) { page.value--; fetchMapels() } }
+const toggleSort = (field) => {
+  if (sortBy.value === field) {
+    if (sortOrder.value === 'asc') sortOrder.value = 'desc'
+    else if (sortOrder.value === 'desc') { sortBy.value = null; sortOrder.value = null }
+  } else { sortBy.value = field; sortOrder.value = 'asc' }
+  page.value = 1
+  fetchMapels()
 }
 
 const openCreateModal = () => {
