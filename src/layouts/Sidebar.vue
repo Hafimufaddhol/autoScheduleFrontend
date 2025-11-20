@@ -59,12 +59,12 @@ const route = useRoute()
 // Navigation items (Font Awesome classes)
 const navigationItems = [
   // { name: 'Dashboard', href: '/', icon: 'fa-solid fa-gauge' },
-  { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
-  { name: 'Guru', href: '/guru', icon: 'fa-solid fa-chalkboard-user' },
+  { name: 'Mata Pelajaran', href: '/mapel', icon: 'fa-solid fa-book' },
   { name: 'Kelas', href: '/kelas', icon: 'fa-solid fa-door-open' },
   { name: 'Aturan Kelas', href: '/kelas-rules', icon: 'fa-solid fa-clipboard-list' },
-  { name: 'Mata Pelajaran', href: '/mapel', icon: 'fa-solid fa-book' },
+  { name: 'Guru', href: '/guru', icon: 'fa-solid fa-chalkboard-user' },
   { name: 'Konfigurasi', href: '/konfigurasi', icon: 'fa-solid fa-gear' },
+  { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
   { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
 ]
 

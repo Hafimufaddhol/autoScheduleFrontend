@@ -1,8 +1,11 @@
 <template>
   <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">Aturan Kelas</h1>
-      <p class="text-gray-600 mt-2">Atur slot harian, hari libur, dan slot terkunci untuk setiap kelas</p>
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Aturan Kelas</h1>
+        <p class="mt-2 text-gray-600">Atur slot harian, hari libur, dan slot terkunci untuk setiap kelas</p>
+      </div>
     </div>
 
     <!-- Alert -->

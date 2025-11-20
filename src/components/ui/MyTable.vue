@@ -71,7 +71,7 @@
         </table>
 
         <!-- Pagination -->
-        <div v-if="showPagination && totalPages > 1"
+        <div 
             class="bg-transparent sticky sm:flex items-center w-full sm:justify-between bottom-0 right-0 border-t border-gray-200 p-4">
             <!-- Info -->
             <div class="flex items-center mb-4 sm:mb-0">

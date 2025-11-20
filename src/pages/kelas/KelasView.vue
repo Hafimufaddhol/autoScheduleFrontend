@@ -1,24 +1,33 @@
 <template>
   <div class="p-6">
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Data Kelas</h1>
-        <p class="text-gray-600 mt-1 text-sm">Server-side pagination, pencarian & sorting.</p>
+        <p class="mt-2 text-gray-600">Kelola data kelas dengan paket dan tingkat</p>
       </div>
-      <div class="flex items-center gap-2">
-        <input v-model="searchQuery" @input="handleSearch" type="text" placeholder="Cari nama / kode" class="border px-3 py-2 rounded-lg text-sm w-60" />
-        <select v-model.number="pageSize" @change="reloadPage" class="border px-2 py-2 rounded-lg text-sm">
-          <option :value="5">5</option>
-          <option :value="10">10</option>
-          <option :value="20">20</option>
-        </select>
-        <button
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
+      <!-- Search -->
+      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
+        <label for="kelas-search" class="sr-only">Search</label>
+        <div class="mt-1 relative lg:w-64 xl:w-96">
+          <input v-model="searchQuery" @input="handleSearch" type="text" id="kelas-search"
+            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
+            placeholder="Cari nama / kode" />
+        </div>
+      </form>
+
+      <!-- Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
+        <BaseButton 
+          icon="fas fa-plus"
+          size="lg"
+          label="Tambah Kelas"
           @click="openCreateModal"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
-        >
-          <i class="fa-solid fa-plus mr-2"></i>
-          Tambah Kelas
-        </button>
+        />
       </div>
     </div>
 
@@ -26,63 +35,29 @@
     <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
     <!-- Table -->
-    <Card>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th @click="toggleSort('nama')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
-                Nama <span v-if="sortBy === 'nama'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
-              </th>
-              <th @click="toggleSort('kode')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
-                Kode <span v-if="sortBy === 'kode'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paket</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="loading">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading...</td>
-            </tr>
-            <tr v-else-if="kelasList.length === 0">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data</td>
-            </tr>
-            <tr v-else v-for="kelas in kelasList" :key="kelas.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">{{ kelas.nama }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ kelas.kode }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <Badge :label="kelas.paket || kelas.jurusan"  />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ kelas.tingkat }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button
-                  @click="openEditModal(kelas)"
-                  class="text-blue-600 hover:text-blue-900 mr-3"
-                >
-                  <i class="fa-solid fa-pen-to-square"></i> Edit
-                </button>
-                <button
-                  @click="handleDelete(kelas.id)"
-                  class="text-red-600 hover:text-red-900"
-                >
-                  <i class="fa-solid fa-trash"></i> Hapus
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- Pagination footer -->
-      <div class="flex items-center justify-between mt-4 px-2" v-if="meta">
-        <p class="text-sm text-gray-600">Halaman {{ meta.pagination.page }} dari {{ meta.pagination.total_pages }} • Total {{ meta.pagination.total_items }} data</p>
-        <div class="flex items-center gap-2">
-          <button @click="prevPage" :disabled="meta.pagination.page <= 1" class="px-3 py-1 border rounded disabled:opacity-40">Prev</button>
-          <button @click="nextPage" :disabled="meta.pagination.page >= meta.pagination.total_pages" class="px-3 py-1 border rounded disabled:opacity-40">Next</button>
-        </div>
-      </div>
-    </Card>
+    <MyTable
+      :data="paginatedData"
+      :columns="columns"
+      :loading="loading"
+      :show-actions="true"
+      :show-pagination="true"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :total-items="totalItems"
+      v-model:pageSize="localPageSize"
+      :sort-key="sortBy"
+      :sort-order="sortOrder"
+      @sort="toggleSort"
+      @edit="openEditModal"
+      @delete="handleDelete"
+      @prev-page="previousPage"
+      @next-page="nextPage"
+      @go-to-page="goToPageLocal"
+    >
+      <template #cell-paket="{ row }">
+        <Badge :label="row.paket || row.jurusan" />
+      </template>
+    </MyTable>
 
     <!-- Modal Create/Edit -->
     <Modal :isOpen="showModal" @close="closeModal" title="Form Kelas" :showFooter="false">
@@ -140,19 +115,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Card, Alert, Badge, Input, Modal } from '@/components/ui'
+import { ref, onMounted, watch } from 'vue'
+import { Alert, Badge, Input, Modal } from '@/components/ui'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import MyTable from '@/components/ui/MyTable.vue'
+import { useTable } from '@/composables/useTable.js'
 import kelasRepository from '@/repositories/kelasRepository'
 import konfigurasiRepository from '@/repositories/konfigurasiRepository'
 
-const kelasList = ref([])
-const meta = ref(null)
-const page = ref(1)
-const pageSize = ref(10)
-const searchQuery = ref('')
-const sortBy = ref(null)
-const sortOrder = ref(null)
-const loading = ref(false)
+const columns = [
+  { key: 'nama', label: 'Nama', sortable: true },
+  { key: 'kode', label: 'Kode', sortable: true },
+  { key: 'paket', label: 'Paket', sortable: false },
+  { key: 'tingkat', label: 'Tingkat', sortable: true },
+]
+
+const {
+  data,
+  paginatedData,
+  setData,
+  searchQuery,
+  sortBy,
+  sortOrder,
+  loading,
+  totalPages,
+  currentPage,
+  goToPage,
+  nextPage: nextPageComposable,
+  previousPage: previousPageComposable,
+  pageSize,
+  totalItems,
+} = useTable([], {
+  pageSize: 50,
+  searchFields: ['nama', 'kode'],
+})
+
+const localPageSize = ref(pageSize.value)
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -173,6 +171,11 @@ const alert = ref({
   message: ''
 })
 
+// Watch for page size changes from MyTable
+watch(localPageSize, (newSize) => {
+  pageSize.value = newSize
+})
+
 const showAlert = (type, message) => {
   alert.value = { show: true, type, message }
   setTimeout(() => {
@@ -180,25 +183,17 @@ const showAlert = (type, message) => {
   }, 3000)
 }
 
-const buildOptions = () => ({
-  page: page.value,
-  pageSize: pageSize.value,
-  search: searchQuery.value || undefined,
-  sort: sortBy.value ? (sortOrder.value === 'desc' ? [`-${sortBy.value}`] : [sortBy.value]) : undefined,
-})
-
 const fetchKelas = async () => {
   loading.value = true
   try {
-    const response = await kelasRepository.getAll(buildOptions())
+    const response = await kelasRepository.getAll({ pageSize: 1000 })
     if (Array.isArray(response.data)) {
-      kelasList.value = response.data
+      setData(response.data)
     } else if (Array.isArray(response)) {
-      kelasList.value = response
+      setData(response)
     } else {
-      kelasList.value = []
+      setData([])
     }
-    meta.value = response.meta || null
   } catch (error) {
     showAlert('error', 'Gagal memuat data kelas')
     console.error('Error fetching kelas:', error)
@@ -220,17 +215,30 @@ const fetchPaket = async () => {
   }
 }
 
-const reloadPage = () => { page.value = 1; fetchKelas() }
-const handleSearch = () => { page.value = 1; fetchKelas() }
-const nextPage = () => { if (meta.value && page.value < meta.value.pagination.total_pages) { page.value++; fetchKelas() } }
-const prevPage = () => { if (meta.value && page.value > 1) { page.value--; fetchKelas() } }
-const toggleSort = (field) => {
-  if (sortBy.value === field) {
-    if (sortOrder.value === 'asc') sortOrder.value = 'desc'
-    else if (sortOrder.value === 'desc') { sortBy.value = null; sortOrder.value = null }
-  } else { sortBy.value = field; sortOrder.value = 'asc' }
-  page.value = 1
-  fetchKelas()
+const toggleSort = ({ key }) => {
+  if (sortBy.value === key) {
+    if (sortOrder.value === 'asc') {
+      sortOrder.value = 'desc'
+    } else if (sortOrder.value === 'desc') {
+      sortBy.value = null
+      sortOrder.value = null
+    }
+  } else {
+    sortBy.value = key
+    sortOrder.value = 'asc'
+  }
+}
+
+const goToPageLocal = (page) => {
+  goToPage(page)
+}
+
+const previousPage = () => {
+  previousPageComposable()
+}
+
+const nextPage = () => {
+  nextPageComposable()
 }
 
 const openCreateModal = () => {

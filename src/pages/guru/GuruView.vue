@@ -1,25 +1,33 @@
 <template>
   <div class="p-6">
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Data Guru</h1>
-        <p class="text-gray-600 mt-1 text-sm">Pagination, pencarian, sorting & filter server-side.</p>
+        <p class="mt-2 text-gray-600">Kelola data guru dengan kompetensi dan jadwal ketersediaan</p>
       </div>
-      <div class="flex items-center gap-2">
-        <input v-model="searchQuery" @input="handleSearch"
-          type="text" placeholder="Cari nama / kode" class="border px-3 py-2 rounded-lg text-sm w-60" />
-        <select v-model.number="pageSize" @change="reloadPage" class="border px-2 py-2 rounded-lg text-sm">
-          <option :value="5">5</option>
-          <option :value="10">10</option>
-          <option :value="20">20</option>
-        </select>
-        <button
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
+      <!-- Search -->
+      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
+        <label for="guru-search" class="sr-only">Search</label>
+        <div class="mt-1 relative lg:w-64 xl:w-96">
+          <input v-model="searchQuery" @input="handleSearch" type="text" id="guru-search"
+            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
+            placeholder="Cari nama / kode" />
+        </div>
+      </form>
+
+      <!-- Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
+        <BaseButton 
+          icon="fas fa-plus"
+          size="lg"
+          label="Tambah Guru"
           @click="openCreateModal"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
-        >
-          <i class="fa-solid fa-plus mr-2"></i>
-          Tambah Guru
-        </button>
+        />
       </div>
     </div>
 
@@ -27,72 +35,37 @@
     <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
     <!-- Table -->
-    <Card>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th @click="toggleSort('nama')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
-                Nama
-                <span v-if="sortBy === 'nama'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
-              </th>
-              <th @click="toggleSort('kode')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
-                Kode
-                <span v-if="sortBy === 'kode'" class="ml-1"><i :class="sortOrder === 'asc' ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i></span>
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kompetensi</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari Tidak Masuk</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="loading">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading...</td>
-            </tr>
-            <tr v-else-if="gurus.length === 0">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data</td>
-            </tr>
-            <tr v-else v-for="guru in gurus" :key="guru.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">{{ guru.nama }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ guru.kode }}</td>
-              <td class="px-6 py-4">
-                <div class="flex flex-wrap gap-1">
-                  <Badge v-for="(val, mapelId) in guru.kompetensi" :key="mapelId" :label="mapelId" variant="primary" />
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <span v-if="guru.hari_tidak_masuk && guru.hari_tidak_masuk.length > 0">
-                  {{ guru.hari_tidak_masuk.join(', ') }}
-                </span>
-                <span v-else class="text-gray-400">-</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button
-                  @click="openEditModal(guru)"
-                  class="text-blue-600 hover:text-blue-900 mr-3"
-                >
-                  <i class="fa-solid fa-pen-to-square"></i> Edit
-                </button>
-                <button
-                  @click="handleDelete(guru.id)"
-                  class="text-red-600 hover:text-red-900"
-                >
-                  <i class="fa-solid fa-trash"></i> Hapus
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- Pagination footer -->
-      <div class="flex items-center justify-between mt-4 px-2" v-if="meta">
-        <p class="text-sm text-gray-600">Halaman {{ meta.pagination.page }} dari {{ meta.pagination.total_pages }} • Total {{ meta.pagination.total_items }} data</p>
-        <div class="flex items-center gap-2">
-          <button @click="prevPage" :disabled="meta.pagination.page <= 1" class="px-3 py-1 border rounded disabled:opacity-40">Prev</button>
-          <button @click="nextPage" :disabled="meta.pagination.page >= meta.pagination.total_pages" class="px-3 py-1 border rounded disabled:opacity-40">Next</button>
+    <MyTable
+      :data="paginatedData"
+      :columns="columns"
+      :loading="loading"
+      :show-actions="true"
+      :show-pagination="true"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :total-items="totalItems"
+      v-model:pageSize="localPageSize"
+      :sort-key="sortBy"
+      :sort-order="sortOrder"
+      @sort="toggleSort"
+      @edit="openEditModal"
+      @delete="handleDelete"
+      @prev-page="previousPage"
+      @next-page="nextPage"
+      @go-to-page="goToPageLocal"
+    >
+      <template #cell-kompetensi="{ row }">
+        <div class="flex flex-wrap gap-1">
+          <Badge v-for="(val, mapelId) in row.kompetensi" :key="mapelId" :label="mapelId" variant="primary" />
         </div>
-      </div>
-    </Card>
+      </template>
+      <template #cell-hari_tidak_masuk="{ row }">
+        <span v-if="row.hari_tidak_masuk && row.hari_tidak_masuk.length > 0">
+          {{ row.hari_tidak_masuk.join(', ') }}
+        </span>
+        <span v-else class="text-gray-400">-</span>
+      </template>
+    </MyTable>
 
     <!-- Modal Create/Edit -->
     <Modal :isOpen="showModal" @close="closeModal" title="Form Guru" :showFooter="false">
@@ -158,20 +131,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Card, Alert, Badge, Input, Modal } from '@/components/ui'
+import { ref, onMounted, watch } from 'vue'
+import { Alert, Badge, Input, Modal } from '@/components/ui'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import MyTable from '@/components/ui/MyTable.vue'
+import { useTable } from '@/composables/useTable.js'
 import guruRepository from '@/repositories/guruRepository'
 import mapelRepository from '@/repositories/mapelRepository'
 
-const gurus = ref([])
-const meta = ref(null)
-const page = ref(1)
-const pageSize = ref(10)
-const searchQuery = ref('')
-const sortBy = ref(null)
-const sortOrder = ref(null)
+const columns = [
+  { key: 'nama', label: 'Nama', sortable: true },
+  { key: 'kode', label: 'Kode', sortable: true },
+  { key: 'kompetensi', label: 'Kompetensi', sortable: false },
+  { key: 'hari_tidak_masuk', label: 'Hari Tidak Masuk', sortable: false },
+]
+
+const {
+  data,
+  paginatedData,
+  setData,
+  searchQuery,
+  sortBy,
+  sortOrder,
+  loading,
+  totalPages,
+  currentPage,
+  goToPage,
+  nextPage: nextPageComposable,
+  previousPage: previousPageComposable,
+  pageSize,
+  totalItems,
+} = useTable([], {
+  pageSize: 50,
+  searchFields: ['nama', 'kode'],
+})
+
+const localPageSize = ref(pageSize.value)
 const availableMapels = ref([])
-const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -193,6 +189,11 @@ const alert = ref({
   message: ''
 })
 
+// Watch for page size changes from MyTable
+watch(localPageSize, (newSize) => {
+  pageSize.value = newSize
+})
+
 const showAlert = (type, message) => {
   alert.value = { show: true, type, message }
   setTimeout(() => {
@@ -200,28 +201,18 @@ const showAlert = (type, message) => {
   }, 3000)
 }
 
-const buildOptions = () => {
-  return {
-    page: page.value,
-    pageSize: pageSize.value,
-    search: searchQuery.value || undefined,
-    sort: sortBy.value ? (sortOrder.value === 'desc' ? [`-${sortBy.value}`] : [sortBy.value]) : undefined,
-  }
-}
-
 const fetchGurus = async () => {
   loading.value = true
   try {
-    const response = await guruRepository.getAll(buildOptions())
+    const response = await guruRepository.getAll({ pageSize: 1000 })
     // response => { data, meta, links }
     if (Array.isArray(response.data)) {
-      gurus.value = response.data
+      setData(response.data)
     } else if (Array.isArray(response)) { // legacy safety
-      gurus.value = response
+      setData(response)
     } else {
-      gurus.value = []
+      setData([])
     }
-    meta.value = response.meta || null
   } catch (error) {
     showAlert('error', 'Gagal memuat data guru')
     console.error('Error fetching gurus:', error)
@@ -230,32 +221,8 @@ const fetchGurus = async () => {
   }
 }
 
-const reloadPage = () => {
-  page.value = 1
-  fetchGurus()
-}
-
-const handleSearch = () => {
-  page.value = 1
-  fetchGurus()
-}
-
-const nextPage = () => {
-  if (meta.value && page.value < meta.value.pagination.total_pages) {
-    page.value += 1
-    fetchGurus()
-  }
-}
-
-const prevPage = () => {
-  if (meta.value && page.value > 1) {
-    page.value -= 1
-    fetchGurus()
-  }
-}
-
-const toggleSort = (field) => {
-  if (sortBy.value === field) {
+const toggleSort = ({ key }) => {
+  if (sortBy.value === key) {
     if (sortOrder.value === 'asc') {
       sortOrder.value = 'desc'
     } else if (sortOrder.value === 'desc') {
@@ -263,11 +230,21 @@ const toggleSort = (field) => {
       sortOrder.value = null
     }
   } else {
-    sortBy.value = field
+    sortBy.value = key
     sortOrder.value = 'asc'
   }
-  page.value = 1
-  fetchGurus()
+}
+
+const goToPageLocal = (page) => {
+  goToPage(page)
+}
+
+const previousPage = () => {
+  previousPageComposable()
+}
+
+const nextPage = () => {
+  nextPageComposable()
 }
 
 const fetchMapels = async () => {

@@ -1,27 +1,31 @@
 <template>
   <div class="jadwal-view p-6">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold mb-4">Lihat Jadwal</h1>
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Lihat Jadwal</h1>
+        <p class="mt-2 text-gray-600">Tampilkan jadwal berdasarkan periode dan kelas</p>
+      </div>
+    </div>
       
-      <!-- Input Periode -->
-      <div class="flex gap-4 mb-4">
+    <!-- Input Periode -->
+    <div class="mb-6">
+      <div class="flex gap-4 items-center">
         <input
           v-model="periode"
           type="text"
           placeholder="Masukkan periode (misal: 2024-ganjil)"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="flex-1 lg:w-96 bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 p-2.5"
         />
-        <button
-          @click="loadJadwal"
+        <BaseButton
+          :label="loading ? 'Memuat...' : 'Tampilkan'"
           :disabled="loading || !periode"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {{ loading ? 'Memuat...' : 'Tampilkan' }}
-        </button>
+          @click="loadJadwal"
+        />
       </div>
 
       <!-- Status Info -->
-      <div v-if="jadwalData && jadwalData.status" class="mb-4">
+      <div v-if="jadwalData && jadwalData.status" class="mt-4">
         <div class="flex items-center gap-2">
           <span class="font-semibold">Status:</span>
           <span 
@@ -241,9 +245,13 @@
 <script>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import BaseButton from '@/components/ui/BaseButton.vue';
 
 export default {
   name: 'JadwalView',
+  components: {
+    BaseButton
+  },
   setup() {
     const periode = ref('');
     const loading = ref(false);
