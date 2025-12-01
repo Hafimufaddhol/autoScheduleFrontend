@@ -8,4 +8,5 @@ export { default as Badge } from './Badge.vue'
 export { default as Alert } from './Alert.vue'
 export { default as Loading } from './Loading.vue'
 export { default as ConfirmDialog } from './ConfirmDialog.vue'
+export { default as ActionDropdown } from './ActionDropdown.vue'
 

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { MainLayout } from '../layouts'
-import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView, KelasRulesView } from '../pages'
+import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView } from '../pages'
+import { ClassEditorLayout, ClassInfoTab, ClassRuleTab, ClassJPMapelTab } from '../pages/kelas'
 import LoginPage from '../pages/auth/Login.vue' // halaman login kamu
 import { JadwalView, JadwalDetailView } from '../pages/jadwal'
 // import { useAuth } from '../composables/useAuth'
@@ -44,9 +45,29 @@ const routes = [
         component: KelasView
       },
       {
-        path: 'kelas-rules',
-        name: 'KelasRules',
-        component: KelasRulesView
+        path: 'kelas/:id',
+        component: ClassEditorLayout,
+        children: [
+          {
+            path: '',
+            redirect: to => ({ name: 'KelasInfo', params: { id: to.params.id } })
+          },
+          {
+            path: 'info',
+            name: 'KelasInfo',
+            component: ClassInfoTab
+          },
+          {
+            path: 'aturan',
+            name: 'KelasAturan',
+            component: ClassRuleTab
+          },
+          {
+            path: 'jp-mapel',
+            name: 'KelasJPMapel',
+            component: ClassJPMapelTab
+          }
+        ]
       },
       {
         path: 'mapel',

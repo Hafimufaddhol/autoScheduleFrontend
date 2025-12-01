@@ -1,45 +1,39 @@
 <template>
-  <div class="p-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
+  <div class="p-6 space-y-6">
+    <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Data Kelas</h1>
-        <p class="mt-2 text-gray-600">Kelola data kelas dengan paket dan tingkat</p>
+        <p class="text-sm text-gray-500 uppercase tracking-wide">Data Master</p>
+        <h1 class="text-3xl font-bold text-gray-900">Kelas</h1>
+        <p class="mt-1 text-gray-600">Kelola info kelas, aturan, dan kebutuhan JP per mapel melalui editor halaman penuh.</p>
       </div>
+      <BaseButton icon="fas fa-plus" label="Tambah Kelas" size="lg" @click="goToCreate" />
     </div>
 
-    <!-- Search & Filters -->
-    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
-      <!-- Search -->
+    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 gap-4">
       <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
-        <label for="kelas-search" class="sr-only">Search</label>
+        <label for="kelas-search" class="sr-only">Pencarian</label>
         <div class="mt-1 relative lg:w-64 xl:w-96">
-          <input v-model="searchQuery" @input="handleSearch" type="text" id="kelas-search"
+          <input
+            v-model="searchQuery"
+            type="text"
+            id="kelas-search"
             class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
-            placeholder="Cari nama / kode" />
+            placeholder="Cari nama / kode"
+          />
         </div>
       </form>
-
-      <!-- Buttons -->
-      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
-        <BaseButton 
-          icon="fas fa-plus"
-          size="lg"
-          label="Tambah Kelas"
-          @click="openCreateModal"
-        />
-      </div>
+      <p class="text-sm text-gray-500 sm:pl-4">
+        Klik tombol edit di setiap baris untuk loncat langsung ke tab Info, Aturan, atau JP Mapel.
+      </p>
     </div>
 
-    <!-- Alert -->
     <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
-    <!-- Table -->
     <MyTable
       :data="paginatedData"
       :columns="columns"
       :loading="loading"
-      :show-actions="true"
+      :show-actions="false"
       :show-pagination="true"
       :current-page="currentPage"
       :total-pages="totalPages"
@@ -48,90 +42,50 @@
       :sort-key="sortBy"
       :sort-order="sortOrder"
       @sort="toggleSort"
-      @edit="openEditModal"
-      @delete="handleDelete"
       @prev-page="previousPage"
       @next-page="nextPage"
       @go-to-page="goToPageLocal"
     >
       <template #cell-paket="{ row }">
-        <Badge :label="row.paket || row.jurusan" />
+        <Badge :label="row.paket || row.jurusan || 'Umum'" />
       </template>
-    </MyTable>
-
-    <!-- Modal Create/Edit -->
-    <Modal :isOpen="showModal" @close="closeModal" title="Form Kelas" :showFooter="false">
-      <form @submit.prevent="handleSubmit">
-        <div class="space-y-4">
-          <Input v-model="form.nama" label="Nama Kelas" placeholder="Contoh: XI IPA 1" required />
-          <Input v-model="form.kode" label="Kode Kelas" placeholder="Contoh: XI-IPA-1" required />
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Paket</label>
-            <select
-              v-model="form.paket"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Pilih Paket</option>
-              <option v-for="p in paketOptions" :key="p" :value="p">{{ p }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tingkat</label>
-            <select
-              v-model.number="form.tingkat"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Pilih Tingkat</option>
-              <option :value="10">10</option>
-              <option :value="11">11</option>
-              <option :value="12">12</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="mt-6 flex justify-end gap-3">
+      <template #cell-actions="{ row }">
+        <div class="flex items-center justify-end gap-2">
+          <ActionDropdown :kelas-id="row.id" />
           <button
             type="button"
-            @click="closeModal"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg"
+            class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2"
+            @click="handleDelete(row.id)"
           >
-            Batal
-          </button>
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-50"
-          >
-            {{ submitting ? 'Menyimpan...' : (isEdit ? 'Update' : 'Simpan') }}
+            <i class="fa-solid fa-trash"></i>
           </button>
         </div>
-      </form>
-    </Modal>
+      </template>
+    </MyTable>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { Alert, Badge, Input, Modal } from '@/components/ui'
+import { useRouter } from 'vue-router'
+import { Alert, Badge } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
+import ActionDropdown from '@/components/ui/ActionDropdown.vue'
 import { useTable } from '@/composables/useTable.js'
 import kelasRepository from '@/repositories/kelasRepository'
-import konfigurasiRepository from '@/repositories/konfigurasiRepository'
+
+const router = useRouter()
 
 const columns = [
   { key: 'nama', label: 'Nama', sortable: true },
   { key: 'kode', label: 'Kode', sortable: true },
-  { key: 'paket', label: 'Paket', sortable: false },
+  { key: 'paket', label: 'Paket/Jurusan', sortable: false },
   { key: 'tingkat', label: 'Tingkat', sortable: true },
+  { key: 'actions', label: 'Aksi', sortable: false }
 ]
 
 const {
-  data,
   paginatedData,
   setData,
   searchQuery,
@@ -144,34 +98,15 @@ const {
   nextPage: nextPageComposable,
   previousPage: previousPageComposable,
   pageSize,
-  totalItems,
+  totalItems
 } = useTable([], {
   pageSize: 50,
-  searchFields: ['nama', 'kode'],
+  searchFields: ['nama', 'kode']
 })
 
 const localPageSize = ref(pageSize.value)
-const showModal = ref(false)
-const isEdit = ref(false)
-const submitting = ref(false)
-const currentId = ref(null)
+const alert = ref({ show: false, type: 'success', message: '' })
 
-const form = ref({
-  nama: '',
-  kode: '',
-  paket: '',
-  tingkat: ''
-})
-
-const paketOptions = ref([])
-
-const alert = ref({
-  show: false,
-  type: 'success',
-  message: ''
-})
-
-// Watch for page size changes from MyTable
 watch(localPageSize, (newSize) => {
   pageSize.value = newSize
 })
@@ -187,7 +122,7 @@ const fetchKelas = async () => {
   loading.value = true
   try {
     const response = await kelasRepository.getAll({ pageSize: 1000 })
-    if (Array.isArray(response.data)) {
+    if (Array.isArray(response?.data)) {
       setData(response.data)
     } else if (Array.isArray(response)) {
       setData(response)
@@ -199,19 +134,6 @@ const fetchKelas = async () => {
     console.error('Error fetching kelas:', error)
   } finally {
     loading.value = false
-  }
-}
-
-const fetchPaket = async () => {
-  try {
-    const res = await konfigurasiRepository.getPaket()
-    // Add special 'Umum' as an option for kelas
-    const arr = Array.isArray(res.paket) ? res.paket.slice() : []
-    if (!arr.includes('Umum')) arr.push('Umum')
-    paketOptions.value = arr
-  } catch (e) {
-    paketOptions.value = ['Umum']
-    console.error(e)
   }
 }
 
@@ -241,58 +163,13 @@ const nextPage = () => {
   nextPageComposable()
 }
 
-const openCreateModal = () => {
-  isEdit.value = false
-  currentId.value = null
-  form.value = {
-    nama: '',
-    kode: '',
-    paket: '',
-    tingkat: ''
-  }
-  showModal.value = true
-}
-
-const openEditModal = (kelas) => {
-  isEdit.value = true
-  currentId.value = kelas.id
-  form.value = {
-    nama: kelas.nama,
-    kode: kelas.kode,
-    paket: kelas.paket || kelas.jurusan,
-    tingkat: kelas.tingkat
-  }
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-}
-
-const handleSubmit = async () => {
-  submitting.value = true
-  try {
-    if (isEdit.value) {
-      await kelasRepository.update(currentId.value, form.value)
-      showAlert('success', 'Kelas berhasil diupdate')
-    } else {
-      await kelasRepository.create(form.value)
-      showAlert('success', 'Kelas berhasil ditambahkan')
-    }
-
-    closeModal()
-    fetchKelas()
-  } catch (error) {
-    showAlert('error', 'Gagal menyimpan data kelas')
-    console.error(error)
-  } finally {
-    submitting.value = false
-  }
+const goToCreate = () => {
+  router.push({ name: 'KelasInfo', params: { id: 'new' } })
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('Yakin ingin menghapus kelas ini?')) return
-
+  if (!id) return
+  if (!confirm('Yakin ingin menghapus kelas ini? Semua aturan dan JP mapel terkait akan ikut dihapus.')) return
   try {
     await kelasRepository.delete(id)
     showAlert('success', 'Kelas berhasil dihapus')
@@ -305,6 +182,5 @@ const handleDelete = async (id) => {
 
 onMounted(() => {
   fetchKelas()
-  fetchPaket()
 })
 </script>

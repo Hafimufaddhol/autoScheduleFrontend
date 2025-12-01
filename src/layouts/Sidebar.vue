@@ -61,7 +61,6 @@ const navigationItems = [
   // { name: 'Dashboard', href: '/', icon: 'fa-solid fa-gauge' },
   { name: 'Mata Pelajaran', href: '/mapel', icon: 'fa-solid fa-book' },
   { name: 'Kelas', href: '/kelas', icon: 'fa-solid fa-door-open' },
-  { name: 'Aturan Kelas', href: '/kelas-rules', icon: 'fa-solid fa-clipboard-list' },
   { name: 'Guru', href: '/guru', icon: 'fa-solid fa-chalkboard-user' },
   { name: 'Konfigurasi', href: '/konfigurasi', icon: 'fa-solid fa-gear' },
   { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
@@ -73,7 +72,7 @@ const bottomItems = [
   { name: 'Logout', href: '/logout', icon: 'fa-solid fa-right-from-bracket' },
 ]
 
-const isActiveRoute = (href) => route.path === href
+const isActiveRoute = (href) => route.path === href || route.path.startsWith(`${href}/`)
 </script>
 
 <style>

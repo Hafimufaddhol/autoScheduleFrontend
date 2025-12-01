@@ -1,1 +1,5 @@
 export { default as KelasView } from './KelasView.vue'
+export { default as ClassEditorLayout } from './ClassEditorLayout.vue'
+export { default as ClassInfoTab } from './tabs/ClassInfoTab.vue'
+export { default as ClassRuleTab } from './tabs/ClassRuleTab.vue'
+export { default as ClassJPMapelTab } from './tabs/ClassJPMapelTab.vue'

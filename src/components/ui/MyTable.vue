@@ -4,16 +4,19 @@
             <thead class="bg-gray-100">
                 <tr>
                     <th v-for="col in columns" :key="col.key" scope="col"
-                        class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide cursor-pointer select-none"
-                        @click="$emit('sort', { key: col.key })">
+                        class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide select-none"
+                        :class="col.sortable === false ? 'cursor-default text-gray-700' : 'cursor-pointer'"
+                        @click="handleColumnClick(col)">
                         <div class="flex items-center space-x-1">
                             <span>{{ col.label }}</span>
                             <!-- Ikon Sort -->
-                            <i v-if="sortKey === col.key" :class="[
-                                sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down',
-                                'text-gray-600 text-xs'
-                            ]"></i>
-                            <i v-else class="fas fa-sort text-gray-400 text-xs"></i>
+                            <template v-if="col.sortable !== false">
+                                <i v-if="sortKey === col.key" :class="[
+                                    sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down',
+                                    'text-gray-600 text-xs'
+                                ]"></i>
+                                <i v-else class="fas fa-sort text-gray-400 text-xs"></i>
+                            </template>
                         </div>
                     </th>
 
@@ -52,13 +55,13 @@
 
                     <td v-if="showActions" class="p-4 whitespace-nowrap space-x-2 text-right">
                         <!-- Edit Button -->
-                        <button type="button" @click="$emit('edit', row)"
+                        <button type="button" @click="emit('edit', row)"
                             class="text-white bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-200 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
                             <i class="fas fa-edit"></i>
                         </button>
 
                         <!-- Delete Button -->
-                        <button type="button" @click="$emit('delete', row)"
+                        <button type="button" @click="emit('delete', row)"
                             class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -92,7 +95,7 @@
             <!-- Page size selector -->
             <div class="flex items-center space-x-3">
                 <label class="text-sm text-gray-600">Jumlah baris:</label>
-                <select :value="pageSize" @change="$emit('update:pageSize', +$event.target.value)"
+                <select :value="pageSize" @change="emit('update:pageSize', +$event.target.value)"
                     class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-cyan-500">
                     <option :value="5">5</option>
                     <option :value="10">10</option>
@@ -103,13 +106,13 @@
 
             <!-- Buttons -->
             <div class="flex items-center space-x-1">
-                <button @click="$emit('prev-page')" :disabled="currentPage === 1"
+                <button @click="emit('prev-page')" :disabled="currentPage === 1"
                     class="px-3 py-2 rounded-lg text-sm border bg-gray-100 hover:bg-gray-200 disabled:opacity-50">
                     Previous
                 </button>
 
                 <!-- Nomor halaman -->
-                <button v-for="page in totalPages" :key="page" @click="$emit('go-to-page', page)" :class="[
+                <button v-for="page in totalPages" :key="page" @click="emit('go-to-page', page)" :class="[
                     'px-3 py-2 rounded-lg text-sm border',
                     page === currentPage
                         ? 'bg-cyan-600 text-white font-bold'
@@ -118,7 +121,7 @@
                     {{ page }}
                 </button>
 
-                <button @click="$emit('next-page')" :disabled="currentPage === totalPages"
+                <button @click="emit('next-page')" :disabled="currentPage === totalPages"
                     class="px-3 py-2 rounded-lg text-sm border bg-gray-100 hover:bg-gray-200 disabled:opacity-50">
                     Next
                 </button>
@@ -130,6 +133,13 @@
 
 <script setup>
 
+
+const emit = defineEmits(['sort', 'edit', 'delete', 'prev-page', 'next-page', 'go-to-page', 'update:pageSize'])
+
+const handleColumnClick = (col) => {
+    if (col.sortable === false) return
+    emit('sort', { key: col.key })
+}
 
 defineProps({
     data: { type: Array, required: true },
