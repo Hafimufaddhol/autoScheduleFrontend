@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { MainLayout } from '../layouts'
 import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView, KelasRulesView } from '../pages'
 import LoginPage from '../pages/auth/Login.vue' // halaman login kamu
-import JadwalView from '../pages/jadwal/JadwalView.vue'
+import { JadwalView, JadwalDetailView } from '../pages/jadwal'
 // import { useAuth } from '../composables/useAuth'
 import { useAuthStore } from '../stores/auth'
 
@@ -27,6 +27,11 @@ const routes = [
         path: 'jadwal',
         name: 'Jadwal',
         component: JadwalView
+      },
+      {
+        path: 'jadwal/:periode',
+        name: 'JadwalDetail',
+        component: JadwalDetailView
       },
       {
         path: 'guru',

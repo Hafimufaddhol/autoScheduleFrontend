@@ -1,556 +1,376 @@
 <template>
-  <div class="jadwal-view p-6">
+  <div class="p-6">
     <!-- Page Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Lihat Jadwal</h1>
-        <p class="mt-2 text-gray-600">Tampilkan jadwal berdasarkan periode dan kelas</p>
+        <h1 class="text-3xl font-bold text-gray-900">Data Jadwal</h1>
+        <p class="mt-2 text-gray-600">Kelola jadwal pelajaran per periode</p>
       </div>
     </div>
+
+    <!-- Search & Filters -->
+    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
+      <!-- Search -->
+      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
+        <label for="jadwal-search" class="sr-only">Search</label>
+        <div class="mt-1 relative lg:w-64 xl:w-96">
+          <input v-model="searchQuery" @input="handleSearch" type="text" id="jadwal-search"
+            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
+            placeholder="Cari periode" />
+        </div>
+      </form>
+
+      <!-- Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
+        <BaseButton 
+          icon="fas fa-plus"
+          size="lg"
+          label="Generate Jadwal"
+          @click="openGenerateModal"
+        />
+      </div>
+    </div>
+
+    <!-- Alert -->
+    <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
+
+    <!-- Cards Grid -->
+    <div v-if="loading" class="text-center py-8">
+      <i class="fas fa-spinner fa-spin text-3xl text-cyan-600"></i>
+    </div>
+    
+    <div v-else-if="filteredJadwal.length === 0" class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
+      Tidak ada jadwal yang tersedia
+    </div>
+
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="j in paginatedJadwal" :key="j.periode"
+        @click="viewJadwal(j.periode)"
+        class="p-5 rounded-lg shadow-sm bg-white cursor-pointer border border-gray-200 transform transition duration-150 hover:shadow-lg hover:-translate-y-1 hover:border-cyan-500">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="font-semibold text-lg text-gray-900 mb-2">{{ j.periode }}</div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs text-gray-500">Status:</span>
+              <Badge 
+                :label="j.status" 
+                :variant="getStatusVariant(j.status)"
+              />
+            </div>
+            <div v-if="j.created_at" class="text-xs text-gray-400 mt-2">
+              <i class="far fa-clock mr-1"></i>
+              {{ formatDate(j.created_at) }}
+            </div>
+          </div>
+          <div class="ml-4 flex gap-2">
+            <button @click.stop="handleDelete(j.periode)" title="Hapus jadwal"
+                    class="text-red-600 hover:text-red-800 p-2">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="!loading && filteredJadwal.length > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="text-sm text-gray-700">
+        Menampilkan {{ startIndex + 1 }}-{{ Math.min(endIndex, totalItems) }} dari {{ totalItems }} jadwal
+      </div>
       
-    <!-- Input Periode -->
-    <div class="mb-6">
-      <div class="flex gap-4 items-center">
-        <input
-          v-model="periode"
-          type="text"
-          placeholder="Masukkan periode (misal: 2024-ganjil)"
-          class="flex-1 lg:w-96 bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 p-2.5"
-        />
-        <BaseButton
-          :label="loading ? 'Memuat...' : 'Tampilkan'"
-          :disabled="loading || !periode"
-          @click="loadJadwal"
-        />
-      </div>
-
-      <!-- Status Info -->
-      <div v-if="jadwalData && jadwalData.status" class="mt-4">
+      <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-semibold">Status:</span>
-          <span 
-            :class="{
-              'text-green-600': jadwalData.status === 'ready',
-              'text-yellow-600': jadwalData.status === 'pending',
-              'text-red-600': jadwalData.status === 'error',
-              'text-gray-600': jadwalData.status === 'not_found'
-            }"
-            class="font-bold uppercase"
+          <label for="pageSize" class="text-sm text-gray-700">Per halaman:</label>
+          <select 
+            id="pageSize"
+            v-model="localPageSize"
+            @change="handlePageSizeChange"
+            class="border border-gray-300 rounded px-2 py-1 text-sm"
           >
-            {{ jadwalData?.status || 'unknown' }}
-          </span>
-          <span v-if="jadwalData?.created_at" class="text-gray-500 ml-4">
-            Dibuat: {{ formatDate(jadwalData.created_at) }}
-          </span>
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+        </div>
+        
+        <div class="flex gap-1">
+          <button
+            @click="previousPage"
+            :disabled="currentPage === 1"
+            class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            @click="goToPage(page)"
+            :class="[
+              'px-3 py-1 border rounded',
+              currentPage === page 
+                ? 'bg-cyan-600 text-white' 
+                : 'hover:bg-gray-50'
+            ]"
+          >
+            {{ page }}
+          </button>
+          <button
+            @click="nextPage"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Error Message -->
-    <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-      {{ error }}
-    </div>
-
-    <!-- Tabs -->
-    <div v-if="jadwalData?.status === 'ready' && items.length > 0" class="mb-6">
-      <div class="border-b border-gray-200">
-        <nav class="-mb-px flex gap-6">
-          <button
-            @click="activeTab = 'kelas'"
-            :class="{
-              'border-blue-500 text-blue-600': activeTab === 'kelas',
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'kelas'
-            }"
-            class="py-4 px-1 border-b-2 font-medium text-sm"
-          >
-            Per Kelas
-          </button>
-          <button
-            @click="activeTab = 'guru'"
-            :class="{
-              'border-blue-500 text-blue-600': activeTab === 'guru',
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'guru'
-            }"
-            class="py-4 px-1 border-b-2 font-medium text-sm"
-          >
-            Per Guru
-          </button>
-          <button
-            @click="activeTab = 'raw'"
-            :class="{
-              'border-blue-500 text-blue-600': activeTab === 'raw',
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'raw'
-            }"
-            class="py-4 px-1 border-b-2 font-medium text-sm"
-          >
-            Data Mentah
-          </button>
-          <button
-            @click="activeTab = 'grid'"
-            :class="{
-              'border-blue-500 text-blue-600': activeTab === 'grid',
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'grid'
-            }"
-            class="py-4 px-1 border-b-2 font-medium text-sm"
-          >
-            Grid Mingguan
-          </button>
-        </nav>
-      </div>
-    </div>
-
-    <!-- Content -->
-    <div v-if="jadwalData?.status === 'ready' && items.length > 0">
-      <!-- Per Kelas View -->
-      <div v-show="activeTab === 'kelas'" class="space-y-8">
-        <div v-for="kelas in kelasGroups" :key="kelas.id" class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-2xl font-bold mb-4">{{ kelas.nama }}</h2>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hari
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Jam
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mapel
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Guru
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Durasi
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="(item, idx) in kelas.items" :key="idx" class="hover:bg-gray-50">
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
-                  <td class="px-4 py-3">{{ item.mapel }}</td>
-                  <td class="px-4 py-3">{{ item.guru }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-4 text-sm text-gray-600">
-            Total JP: <span class="font-semibold">{{ kelas.totalJP }}</span>
+    <!-- Modal Generate -->
+    <Modal :isOpen="showGenerateModal" @close="closeGenerateModal" title="Generate Jadwal" :showFooter="false">
+      <form @submit.prevent="handleGenerate">
+        <div class="space-y-4">
+          <Input v-model="generateForm.periode" label="Periode" placeholder="Contoh: 2024-Ganjil" required />
+          <p class="text-sm text-gray-600">
+            Proses generate jadwal akan berjalan di background. Status dapat dilihat pada card jadwal.
+          </p>
+          <div class="flex justify-end gap-2 mt-4">
+            <BaseButton label="Batal" variant="secondary" @click="closeGenerateModal" />
+            <BaseButton label="Generate" icon="fas fa-play" type="submit" :loading="generating" />
           </div>
         </div>
-      </div>
+      </form>
+    </Modal>
 
-      <!-- Per Guru View -->
-      <div v-show="activeTab === 'guru'" class="space-y-8">
-        <div v-for="guru in guruGroups" :key="guru.id" class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-2xl font-bold mb-4">{{ guru.nama }}</h2>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hari
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Jam
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kelas
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mapel
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Durasi
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="(item, idx) in guru.items" :key="idx" class="hover:bg-gray-50">
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
-                  <td class="px-4 py-3">{{ item.kelas }}</td>
-                  <td class="px-4 py-3">{{ item.mapel }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-4 text-sm text-gray-600">
-            Total JP: <span class="font-semibold">{{ guru.totalJP }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Raw Data View -->
-      <div v-show="activeTab === 'raw'" class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold mb-4">Data Mentah (JSON)</h2>
-        <pre class="bg-gray-50 p-4 rounded overflow-x-auto text-sm">{{ JSON.stringify(items, null, 2) }}</pre>
-      </div>
-
-      <!-- Grid Mingguan View -->
-      <div v-show="activeTab === 'grid'" class="space-y-10">
-        <div v-for="day in gridDays" :key="day.hari_index" class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-2xl font-bold mb-4">{{ day.hari }}</h2>
-          <div class="overflow-x-auto">
-            <table class="min-w-full border-collapse table-fixed">
-              <thead>
-                <tr>
-                  <th class="border px-2 py-2 w-16 text-xs uppercase bg-gray-50">Jam ke</th>
-                  <th v-for="k in kelasOrdered" :key="k.id" class="border px-2 py-2 text-xs uppercase bg-gray-50">
-                    {{ k.nama }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in day.rows" :key="row.slot">
-                  <td class="border px-2 py-1 text-center text-sm bg-gray-50">{{ row.slot }}</td>
-                  <template v-for="cell in row.cells" :key="cell.key">
-                    <td v-if="cell.show" :rowspan="cell.rowspan" class="border align-top p-2 text-xs">
-                      <div v-if="cell.text">
-                        <div class="font-semibold">{{ cell.text.mapel }}</div>
-                        <div class="text-gray-600">{{ cell.text.guru }}</div>
-                      </div>
-                    </td>
-                  </template>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="jadwalData?.status === 'ready' && items.length === 0" 
-         class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-      Jadwal belum memiliki item.
-    </div>
-
-    <div v-else-if="jadwalData?.status === 'pending'" 
-         class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded">
-      Jadwal sedang diproses. Silakan refresh halaman setelah beberapa saat.
-    </div>
-
-    <div v-else-if="jadwalData?.status === 'not_found'" 
-         class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-3 rounded">
-      Jadwal tidak ditemukan untuk periode ini.
-    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
-import axios from 'axios';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import BaseButton from '@/components/ui/BaseButton.vue';
+import Badge from '@/components/ui/Badge.vue';
+import Modal from '@/components/ui/Modal.vue';
+import Input from '@/components/ui/Input.vue';
+import Alert from '@/components/ui/Alert.vue';
+import jadwalRepository from '@/repositories/jadwalRepository';
 
 export default {
   name: 'JadwalView',
   components: {
-    BaseButton
+    BaseButton,
+    Badge,
+    Modal,
+    Input,
+    Alert
   },
   setup() {
-    const periode = ref('');
+    const router = useRouter();
     const loading = ref(false);
-    const error = ref('');
-    const jadwalData = ref(null);
-    const items = ref([]); // aggregated blocks for display
-    const activeTab = ref('kelas');
+    const jadwalList = ref([]);
+    const searchQuery = ref('');
+    const currentPage = ref(1);
+    const localPageSize = ref(10);
+    const showGenerateModal = ref(false);
+    const generating = ref(false);
+    const generateForm = ref({ periode: '' });
+    const alert = ref({ show: false, type: 'success', message: '' });
 
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://qqv467v1-5000.asse.devtunnels.ms/';
-
-    // Master data maps for pretty names
-    const dayNames = ref(["Senin","Selasa","Rabu","Kamis","Jumat"]);
-    const guruMap = ref({});
-    const mapelMap = ref({});
-    const kelasMap = ref({});
-
-    const loadKonfigurasi = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/konfigurasi`);
-        const konf = res?.data?.data ?? res?.data ?? {};
-        if (Array.isArray(konf.hari) && konf.hari.length) {
-          dayNames.value = konf.hari;
-        }
-      } catch (_) { /* ignore and use defaults */ }
-    };
-
-    const loadMasters = async () => {
-      try {
-        const [rg, rm, rk] = await Promise.all([
-          axios.get(`${API_BASE}/guru`),
-          axios.get(`${API_BASE}/mapel`),
-          axios.get(`${API_BASE}/kelas`),
-        ]);
-        guruMap.value = {};
-        (rg.data?.data ?? rg.data ?? []).forEach(g => { guruMap.value[g.id] = g.nama || g.kode || g.id; });
-        mapelMap.value = {};
-        (rm.data?.data ?? rm.data ?? []).forEach(m => { mapelMap.value[m.id] = m.nama || m.kode || m.id; });
-        kelasMap.value = {};
-        (rk.data?.data ?? rk.data ?? []).forEach(k => { kelasMap.value[k.id] = k.nama || k.kode || k.id; });
-      } catch (_) { /* keep ids if fails */ }
-    };
-
-    const aggregateSlotsToBlocks = (slotItems) => {
-      // slotItems is per-slot docs: {guru_id, kelas_id, mapel_id, hari_index, slot, block_ref, order_in_block}
-      const byBlock = new Map();
-      for (const it of slotItems) {
-        const key = it.block_ref || `${it.guru_id}_${it.mapel_id}_${it.kelas_id}_${it.hari_index}`;
-        if (!byBlock.has(key)) byBlock.set(key, []);
-        byBlock.get(key).push(it);
-      }
-      const blocks = [];
-      for (const [bref, arr] of byBlock.entries()) {
-        if (!arr.length) continue;
-        arr.sort((a,b) => (a.slot||0) - (b.slot||0));
-        const first = arr[0];
-        const slots = arr.map(x => x.slot).filter(s => typeof s === 'number');
-        const start = slots.length ? slots[0] : null;
-        const size = slots.length;
-        const hari_index = first.hari_index;
-        const hari = (hari_index != null && dayNames.value[hari_index]) ? dayNames.value[hari_index] : `${hari_index}`;
-        blocks.push({
-          block_id: bref,
-          guru_id: first.guru_id,
-          guru_nama: guruMap.value[first.guru_id] || first.guru_id,
-          mapel_id: first.mapel_id,
-          mapel_nama: mapelMap.value[first.mapel_id] || first.mapel_id,
-          kelas_id: first.kelas_id,
-          kelas_nama: kelasMap.value[first.kelas_id] || first.kelas_id,
-          hari_index,
-          hari,
-          start,
-          size,
-          slots,
-        });
-      }
-      // sort blocks by kelas, day, start
-      blocks.sort((a,b) => {
-        if (a.kelas_nama !== b.kelas_nama) return a.kelas_nama.localeCompare(b.kelas_nama);
-        if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
-        return (a.start||0) - (b.start||0);
-      });
-      return blocks;
-    };
-
+    // Load jadwal list
     const loadJadwal = async () => {
-      if (!periode.value) return;
       loading.value = true;
-      error.value = '';
-      jadwalData.value = null;
-      items.value = [];
-
       try {
-        // fetch configuration and masters first for proper name mapping
-        await Promise.all([loadKonfigurasi(), loadMasters()]);
-
-        const response = await axios.get(`${API_BASE}/jadwal/${periode.value}`);
-        const payload = response?.data?.data ?? response?.data;
-        if (payload) {
-          // Support both object payload and raw array (items-only) payloads
-          if (Array.isArray(payload)) {
-            jadwalData.value = { status: 'ready', items: payload };
-          } else {
-            jadwalData.value = payload;
-          }
-          if (jadwalData.value.status === 'ready' && Array.isArray(jadwalData.value.items)) {
-            const slotItems = jadwalData.value.items;
-            const looksAggregated = slotItems.length > 0 && Array.isArray(slotItems[0]?.slots);
-            if (looksAggregated) {
-              items.value = slotItems.map(b => ({
-                block_id: b.block_id,
-                guru_id: b.guru_id,
-                guru_nama: guruMap.value[b.guru_id] || b.guru_id,
-                mapel_id: b.mapel_id,
-                mapel_nama: mapelMap.value[b.mapel_id] || b.mapel_id,
-                kelas_id: b.kelas_id,
-                kelas_nama: kelasMap.value[b.kelas_id] || b.kelas_id,
-                hari_index: b.hari_index,
-                hari: dayNames.value[b.hari_index] || `${b.hari_index}`,
-                start: b.start,
-                size: Array.isArray(b.slots) ? b.slots.length : (b.durasi || 0),
-                slots: Array.isArray(b.slots) ? b.slots : [],
-              }));
-            } else {
-              items.value = aggregateSlotsToBlocks(slotItems);
-            }
-          }
-        } else {
-          error.value = 'Format response tidak valid';
-        }
+        const response = await jadwalRepository.getAll();
+        jadwalList.value = response.data?.data || response.data || [];
       } catch (err) {
-        console.error('Error loading jadwal:', err);
-        error.value = err.response?.data?.error || err.message || 'Terjadi kesalahan';
+        console.error('Error loading jadwal list:', err);
+        showAlert('error', 'Gagal memuat daftar jadwal');
       } finally {
         loading.value = false;
       }
     };
 
-    // Group by kelas
-    const kelasGroups = computed(() => {
-      const groups = {};
-      items.value.forEach(item => {
-        if (!groups[item.kelas_id]) {
-          groups[item.kelas_id] = {
-            id: item.kelas_id,
-            nama: item.kelas_nama || item.kelas_id,
-            items: [],
-            totalJP: 0
-          };
-        }
-        groups[item.kelas_id].items.push({
-          hari: item.hari,
-          start: item.start,
-          mapel: item.mapel_nama || item.mapel_id,
-          guru: item.guru_nama || item.guru_id,
-          size: item.size
-        });
-        groups[item.kelas_id].totalJP += item.size || 0;
-      });
-
-      // Sort items by day and start time
-      Object.values(groups).forEach(group => {
-        group.items.sort((a, b) => {
-          if (a.hari !== b.hari) return a.hari.localeCompare(b.hari);
-          return a.start - b.start;
-        });
-      });
-
-      return Object.values(groups).sort((a, b) => a.nama.localeCompare(b.nama));
-    });
-
-    // Group by guru
-    const guruGroups = computed(() => {
-      const groups = {};
-      items.value.forEach(item => {
-        if (!groups[item.guru_id]) {
-          groups[item.guru_id] = {
-            id: item.guru_id,
-            nama: item.guru_nama || item.guru_id,
-            items: [],
-            totalJP: 0
-          };
-        }
-        groups[item.guru_id].items.push({
-          hari: item.hari,
-          start: item.start,
-          kelas: item.kelas_nama || item.kelas_id,
-          mapel: item.mapel_nama || item.mapel_id,
-          size: item.size
-        });
-        groups[item.guru_id].totalJP += item.size || 0;
-      });
-
-      // Sort items by day and start time
-      Object.values(groups).forEach(group => {
-        group.items.sort((a, b) => {
-          if (a.hari !== b.hari) return a.hari.localeCompare(b.hari);
-          return a.start - b.start;
-        });
-      });
-
-      return Object.values(groups).sort((a, b) => a.nama.localeCompare(b.nama));
-    });
-
-    // Grid: compute ordered kelas list used as columns
-    const kelasOrdered = computed(() => {
-      const seen = new Map();
-      items.value.forEach(it => {
-        if (!seen.has(it.kelas_id)) {
-          seen.set(it.kelas_id, { id: it.kelas_id, nama: it.kelas_nama || it.kelas_id });
-        }
-      });
-      return Array.from(seen.values()).sort((a,b) => a.nama.localeCompare(b.nama));
-    });
-
-    // Helper to build cell matrix with rowspans per day
-    const buildDayGrid = (hari_index) => {
-      const kelasCols = kelasOrdered.value;
-      if (kelasCols.length === 0) return { hari_index, hari: dayNames.value[hari_index] || `${hari_index}`, rows: [] };
-      // collect blocks for this day
-      const blocks = items.value.filter(it => it.hari_index === hari_index);
-      // determine max slot number for this day
-      let maxSlot = 0;
-      for (const b of blocks) {
-        if (Array.isArray(b.slots) && b.slots.length) {
-          maxSlot = Math.max(maxSlot, Math.max(...b.slots));
-        } else if (typeof b.start === 'number' && typeof b.size === 'number') {
-          maxSlot = Math.max(maxSlot, b.start + b.size - 1);
-        }
-      }
-      if (!maxSlot) maxSlot = 12; // sensible default
-      // Build a lookup: kelas -> slot -> cell spec
-      const cellMap = new Map();
-      for (const k of kelasCols) {
-        cellMap.set(k.id, {});
-      }
-      for (const b of blocks) {
-        const k = b.kelas_id;
-        if (!cellMap.has(k)) continue;
-        const slots = Array.isArray(b.slots) && b.slots.length
-          ? b.slots.slice().sort((a,b) => a-b)
-          : Array.from({length: b.size || 0}, (_,i) => (b.start||0)+i);
-        if (!slots.length) continue;
-        const start = slots[0];
-        const size = slots.length;
-        // place a starting cell with rowspan
-        cellMap.get(k)[start] = {
-          show: true,
-          rowspan: size,
-          key: `${k}_${start}`,
-          text: { mapel: b.mapel_nama || b.mapel_id, guru: b.guru_nama || b.guru_id }
-        };
-        // mark following slots as covered
-        for (let i = 1; i < size; i++) {
-          const s = start + i;
-          cellMap.get(k)[s] = { show: false, rowspan: 0, key: `${k}_${s}`, text: null };
-        }
-      }
-      // build rows
-      const rows = [];
-      for (let s = 1; s <= maxSlot; s++) {
-        const row = { slot: s, cells: [] };
-        for (const k of kelasCols) {
-          const spec = cellMap.get(k.id)[s];
-          if (spec) {
-            row.cells.push(spec);
-          } else {
-            row.cells.push({ show: true, rowspan: 1, key: `${k.id}_${s}`, text: null });
-          }
-        }
-        rows.push(row);
-      }
-      return { hari_index, hari: dayNames.value[hari_index] || `${hari_index}`, rows };
+    // Navigate to detail page
+    const viewJadwal = (periode) => {
+      router.push({ name: 'JadwalDetail', params: { periode } });
     };
 
-    // Grid: days present in data
-    const gridDays = computed(() => {
-      const present = new Set(items.value.map(it => it.hari_index).filter(v => v !== undefined && v !== null));
-      const idxs = Array.from(present.values()).sort((a,b) => a-b);
-      return idxs.map(i => buildDayGrid(i));
+    // Delete jadwal
+    const handleDelete = async (periode) => {
+      if (!confirm(`Yakin ingin menghapus jadwal ${periode}?`)) return;
+      
+      try {
+        await jadwalRepository.delete(periode);
+        showAlert('success', 'Jadwal berhasil dihapus');
+        await loadJadwal(); // Refresh list
+      } catch (err) {
+        console.error('Error deleting jadwal:', err);
+        showAlert('error', 'Gagal menghapus jadwal');
+      }
+    };
+
+    // Modal handlers
+    const openGenerateModal = () => {
+      generateForm.value = { periode: '' };
+      showGenerateModal.value = true;
+    };
+
+    const closeGenerateModal = () => {
+      showGenerateModal.value = false;
+      generateForm.value = { periode: '' };
+    };
+
+    const handleGenerate = async () => {
+      if (!generateForm.value.periode) return;
+      
+      generating.value = true;
+      try {
+        // TODO: Call backend create endpoint when implemented
+        // await jadwalRepository.create(generateForm.value.periode);
+        showAlert('info', 'Fitur generate jadwal belum diimplementasikan. Silakan tunggu update selanjutnya.');
+        closeGenerateModal();
+        // await loadJadwal(); // Refresh after create
+      } catch (err) {
+        console.error('Error generating jadwal:', err);
+        showAlert('error', 'Gagal membuat jadwal');
+      } finally {
+        generating.value = false;
+      }
+    };
+
+    // Search & Filter
+    const handleSearch = () => {
+      currentPage.value = 1; // Reset to first page on search
+    };
+
+    const filteredJadwal = computed(() => {
+      if (!searchQuery.value) return jadwalList.value;
+      const query = searchQuery.value.toLowerCase();
+      return jadwalList.value.filter(j => 
+        j.periode?.toLowerCase().includes(query)
+      );
     });
 
+    // Pagination
+    const totalItems = computed(() => filteredJadwal.value.length);
+    const totalPages = computed(() => Math.ceil(totalItems.value / localPageSize.value));
+    
+    const startIndex = computed(() => (currentPage.value - 1) * localPageSize.value);
+    const endIndex = computed(() => startIndex.value + localPageSize.value);
+    
+    const paginatedJadwal = computed(() => {
+      return filteredJadwal.value.slice(startIndex.value, endIndex.value);
+    });
+
+    const visiblePages = computed(() => {
+      const pages = [];
+      const total = totalPages.value;
+      const current = currentPage.value;
+      
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) pages.push(i);
+      } else {
+        if (current <= 4) {
+          for (let i = 1; i <= 5; i++) pages.push(i);
+          pages.push('...');
+          pages.push(total);
+        } else if (current >= total - 3) {
+          pages.push(1);
+          pages.push('...');
+          for (let i = total - 4; i <= total; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push('...');
+          for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+          pages.push('...');
+          pages.push(total);
+        }
+      }
+      
+      return pages;
+    });
+
+    const goToPage = (page) => {
+      if (page === '...') return;
+      currentPage.value = page;
+    };
+
+    const previousPage = () => {
+      if (currentPage.value > 1) currentPage.value--;
+    };
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) currentPage.value++;
+    };
+
+    const handlePageSizeChange = () => {
+      currentPage.value = 1;
+    };
+
+    // Alert helper
+    const showAlert = (type, message) => {
+      alert.value = { show: true, type, message };
+      setTimeout(() => {
+        alert.value.show = false;
+      }, 5000);
+    };
+
+    // Status badge variant
+    const getStatusVariant = (status) => {
+      const variants = {
+        ready: 'success',
+        pending: 'warning',
+        error: 'danger',
+        not_found: 'secondary'
+      };
+      return variants[status] || 'secondary';
+    };
+
+    // Format date
     const formatDate = (timestamp) => {
       if (!timestamp) return '-';
       const date = new Date(timestamp);
-      return date.toLocaleString('id-ID');
+      return date.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     };
 
+    onMounted(() => {
+      loadJadwal();
+    });
+
     return {
-      periode,
       loading,
-      error,
-      jadwalData,
-      items,
-      activeTab,
-      loadJadwal,
-      kelasGroups,
-      guruGroups,
-      kelasOrdered,
-      gridDays,
+      jadwalList,
+      searchQuery,
+      currentPage,
+      localPageSize,
+      showGenerateModal,
+      generating,
+      generateForm,
+      alert,
+      filteredJadwal,
+      paginatedJadwal,
+      totalItems,
+      totalPages,
+      startIndex,
+      endIndex,
+      visiblePages,
+      viewJadwal,
+      handleDelete,
+      openGenerateModal,
+      closeGenerateModal,
+      handleGenerate,
+      handleSearch,
+      goToPage,
+      previousPage,
+      nextPage,
+      handlePageSizeChange,
+      getStatusVariant,
       formatDate
     };
   }
@@ -558,8 +378,5 @@ export default {
 </script>
 
 <style scoped>
-.jadwal-view {
-  max-width: 1400px;
-  margin: 0 auto;
-}
+/* Add any custom styles here */
 </style>
