@@ -24,6 +24,10 @@ const mapelRepository = {
     return axios.get(`${API_URL}/mapel${q}`).then(r => r.data)
   },
 
+  getReference() {
+    return axios.get(`${API_URL}/mapel/reference`).then(r => r.data)
+  },
+
   getById(id) {
     return axios.get(`${API_URL}/mapel/${id}`).then(r => r.data)
   },

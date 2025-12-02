@@ -60,11 +60,11 @@ const route = useRoute()
 const navigationItems = [
   // { name: 'Dashboard', href: '/', icon: 'fa-solid fa-gauge' },
   { name: 'Mata Pelajaran', href: '/mapel', icon: 'fa-solid fa-book' },
-  { name: 'Kelas', href: '/kelas', icon: 'fa-solid fa-door-open' },
   { name: 'Guru', href: '/guru', icon: 'fa-solid fa-chalkboard-user' },
+  { name: 'Kelas', href: '/kelas', icon: 'fa-solid fa-door-open' },
   { name: 'Konfigurasi', href: '/konfigurasi', icon: 'fa-solid fa-gear' },
   { name: 'Jadwal', href: '/jadwal', icon: 'fa-solid fa-calendar-days' },
-  { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
+  // { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
 ]
 
 // Bottom items (opsional)

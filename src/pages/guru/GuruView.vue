@@ -14,7 +14,7 @@
       <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
         <label for="guru-search" class="sr-only">Search</label>
         <div class="mt-1 relative lg:w-64 xl:w-96">
-          <input v-model="searchQuery" @input="handleSearch" type="text" id="guru-search"
+          <input v-model="searchQuery" type="text" id="guru-search"
             class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
             placeholder="Cari nama / kode" />
         </div>
@@ -36,23 +36,24 @@
 
     <!-- Table -->
     <MyTable
-      :data="paginatedData"
+      :data="rows"
       :columns="columns"
       :loading="loading"
       :show-actions="true"
       :show-pagination="true"
-      :current-page="currentPage"
+      :current-page="page"
       :total-pages="totalPages"
       :total-items="totalItems"
-      v-model:pageSize="localPageSize"
+      :page-size="pageSize"
       :sort-key="sortBy"
       :sort-order="sortOrder"
-      @sort="toggleSort"
+      @sort="handleSort"
       @edit="openEditModal"
       @delete="handleDelete"
       @prev-page="previousPage"
       @next-page="nextPage"
-      @go-to-page="goToPageLocal"
+      @go-to-page="setPage"
+      @update:pageSize="setPageSize"
     >
       <template #cell-kompetensi="{ row }">
         <div class="flex flex-wrap gap-1">
@@ -76,19 +77,68 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi (Mapel)</label>
-            <div class="space-y-2">
-              <div v-for="mapel in availableMapels" :key="mapel.id" class="flex items-center">
-                <input
-                  type="checkbox"
-                  :id="'mapel-' + mapel.id"
-                  :value="mapel.kode"
-                  v-model="selectedKompetensi"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label :for="'mapel-' + mapel.id" class="ml-2 block text-sm text-gray-900">
-                  {{ mapel.nama }} ({{ mapel.kode }})
-                </label>
+            <p class="text-xs text-gray-500 mb-3">Pilih mapel dengan pencarian cepat kemudian klik untuk menambah atau menghapus.</p>
+            <div class="space-y-3">
+              <div class="relative" ref="kompetensiDropdownRef">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-between gap-3 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  @click.stop.prevent="toggleKompetensiDropdown"
+                >
+                  <span>
+                    {{ selectedKompetensiDetails.length ? `${selectedKompetensiDetails.length} mapel dipilih` : 'Pilih kompetensi mapel' }}
+                  </span>
+                  <i :class="['fa-solid', 'fa-chevron-' + (kompetensiDropdownOpen ? 'up' : 'down'), 'text-xs']"></i>
+                </button>
+                <transition name="fade">
+                  <div
+                    v-if="kompetensiDropdownOpen"
+                    class="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-xl"
+                  >
+                    <div class="p-3 border-b border-gray-100">
+                      <input
+                        v-model="kompetensiSearch"
+                        type="text"
+                        placeholder="Cari mapel..."
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div class="max-h-60 overflow-y-auto">
+                      <button
+                        v-for="mapel in filteredMapels"
+                        :key="mapel.id"
+                        type="button"
+                        class="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-gray-50"
+                        @click.stop.prevent="toggleMapelSelection(mapel.id)"
+                      >
+                        <div>
+                          <p class="font-medium text-gray-900">{{ mapel.nama }}</p>
+                          <p class="text-xs text-gray-500">{{ mapel.kode }}</p>
+                        </div>
+                        <i
+                          v-if="selectedKompetensi.includes(mapel.id)"
+                          class="fa-solid fa-check text-cyan-600"
+                        ></i>
+                      </button>
+                      <p v-if="!filteredMapels.length" class="p-4 text-sm text-gray-500">Mapel tidak ditemukan.</p>
+                    </div>
+                  </div>
+                </transition>
               </div>
+
+              <div v-if="selectedKompetensiDetails.length" class="flex flex-wrap gap-2">
+                <span
+                  v-for="mapel in selectedKompetensiDetails"
+                  :key="mapel.id"
+                  class="inline-flex items-center gap-2 rounded-full bg-cyan-50 border border-cyan-200 px-3 py-1 text-sm text-cyan-800"
+                >
+                  {{ mapel.nama }} ({{ mapel.kode }})
+                  <button type="button" class="text-cyan-600 hover:text-cyan-800" @click="removeKompetensi(mapel.id)">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                  </button>
+                </span>
+              </div>
+              <p v-else class="text-sm text-gray-400">Belum ada mapel dipilih.</p>
             </div>
           </div>
 
@@ -131,11 +181,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue'
 import { Alert, Badge, Input, Modal } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
-import { useTable } from '@/composables/useTable.js'
+import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import guruRepository from '@/repositories/guruRepository'
 import mapelRepository from '@/repositories/mapelRepository'
 
@@ -146,28 +196,29 @@ const columns = [
   { key: 'hari_tidak_masuk', label: 'Hari Tidak Masuk', sortable: false },
 ]
 
+const searchQuery = ref('')
+const searchDebounce = ref(null)
 const {
-  data,
-  paginatedData,
-  setData,
-  searchQuery,
+  rows,
+  loading,
+  page,
+  pageSize,
+  totalPages,
+  totalItems,
   sortBy,
   sortOrder,
-  loading,
-  totalPages,
-  currentPage,
-  goToPage,
-  nextPage: nextPageComposable,
-  previousPage: previousPageComposable,
-  pageSize,
-  totalItems,
-} = useTable([], {
-  pageSize: 50,
-  searchFields: ['nama', 'kode'],
-})
-
-const localPageSize = ref(pageSize.value)
+  setPage,
+  nextPage,
+  previousPage,
+  setPageSize,
+  setSearchValue,
+  toggleSort,
+  refresh
+} = useRemoteTable((params) => guruRepository.getAll(params), )
 const availableMapels = ref([])
+const kompetensiDropdownOpen = ref(false)
+const kompetensiDropdownRef = ref(null)
+const kompetensiSearch = ref('')
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -180,6 +231,24 @@ const form = ref({
 })
 
 const selectedKompetensi = ref([])
+const filteredMapels = computed(() => {
+  if (!kompetensiSearch.value) {
+    return availableMapels.value
+  }
+
+  const keyword = kompetensiSearch.value.toLowerCase()
+  return availableMapels.value.filter((mapel) => {
+    const nama = mapel.nama?.toLowerCase() || ''
+    const kode = mapel.kode?.toLowerCase() || ''
+    return nama.includes(keyword) || kode.includes(keyword)
+  })
+})
+
+const selectedKompetensiDetails = computed(() => {
+  return selectedKompetensi.value
+    .map((id) => availableMapels.value.find((mapel) => mapel.id === id))
+    .filter(Boolean)
+})
 
 const hariOptions = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
 
@@ -189,9 +258,13 @@ const alert = ref({
   message: ''
 })
 
-// Watch for page size changes from MyTable
-watch(localPageSize, (newSize) => {
-  pageSize.value = newSize
+watch(searchQuery, (value) => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
+  searchDebounce.value = setTimeout(() => {
+    setSearchValue(value)
+  }, 600)
 })
 
 const showAlert = (type, message) => {
@@ -201,60 +274,47 @@ const showAlert = (type, message) => {
   }, 3000)
 }
 
-const fetchGurus = async () => {
-  loading.value = true
-  try {
-    const response = await guruRepository.getAll({ pageSize: 1000 })
-    // response => { data, meta, links }
-    if (Array.isArray(response.data)) {
-      setData(response.data)
-    } else if (Array.isArray(response)) { // legacy safety
-      setData(response)
-    } else {
-      setData([])
-    }
-  } catch (error) {
-    showAlert('error', 'Gagal memuat data guru')
-    console.error('Error fetching gurus:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const toggleSort = ({ key }) => {
-  if (sortBy.value === key) {
-    if (sortOrder.value === 'asc') {
-      sortOrder.value = 'desc'
-    } else if (sortOrder.value === 'desc') {
-      sortBy.value = null
-      sortOrder.value = null
-    }
-  } else {
-    sortBy.value = key
-    sortOrder.value = 'asc'
-  }
-}
-
-const goToPageLocal = (page) => {
-  goToPage(page)
-}
-
-const previousPage = () => {
-  previousPageComposable()
-}
-
-const nextPage = () => {
-  nextPageComposable()
+const handleSort = ({ key }) => {
+  toggleSort(key)
 }
 
 const fetchMapels = async () => {
   try {
-    const response = await mapelRepository.getAll(({
-  pageSize: 1000,
-}))
-    availableMapels.value = Array.isArray(response.data) ? response.data : []
+    const response = await mapelRepository.getReference()
+    availableMapels.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error('Gagal memuat mapel:', error)
+  }
+}
+
+const toggleKompetensiDropdown = () => {
+  kompetensiDropdownOpen.value = !kompetensiDropdownOpen.value
+  if (kompetensiDropdownOpen.value) {
+    kompetensiSearch.value = ''
+  }
+}
+
+const closeKompetensiDropdown = () => {
+  kompetensiDropdownOpen.value = false
+}
+
+const toggleMapelSelection = (mapelId) => {
+  if (!mapelId) return
+  if (selectedKompetensi.value.includes(mapelId)) {
+    selectedKompetensi.value = selectedKompetensi.value.filter((id) => id !== mapelId)
+  } else {
+    selectedKompetensi.value = [...selectedKompetensi.value, mapelId]
+  }
+}
+
+const removeKompetensi = (mapelId) => {
+  selectedKompetensi.value = selectedKompetensi.value.filter((id) => id !== mapelId)
+}
+
+const handleKompetensiClickOutside = (event) => {
+  if (!kompetensiDropdownRef.value) return
+  if (!kompetensiDropdownRef.value.contains(event.target)) {
+    closeKompetensiDropdown()
   }
 }
 
@@ -310,7 +370,7 @@ const handleSubmit = async () => {
     }
 
     closeModal()
-    fetchGurus()
+    refresh()
   } catch (error) {
     showAlert('error', 'Gagal menyimpan data guru')
     console.error(error)
@@ -325,7 +385,7 @@ const handleDelete = async (id) => {
   try {
     await guruRepository.delete(id)
     showAlert('success', 'Guru berhasil dihapus')
-    fetchGurus()
+    refresh()
   } catch (error) {
     showAlert('error', 'Gagal menghapus guru')
     console.error(error)
@@ -333,7 +393,15 @@ const handleDelete = async (id) => {
 }
 
 onMounted(() => {
-  fetchGurus()
+  refresh()
   fetchMapels()
+  document.addEventListener('click', handleKompetensiClickOutside)
+})
+
+onBeforeUnmount(() => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
+  document.removeEventListener('click', handleKompetensiClickOutside)
 })
 </script>

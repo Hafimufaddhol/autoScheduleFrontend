@@ -14,7 +14,7 @@
       <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
         <label for="mapel-search" class="sr-only">Search</label>
         <div class="mt-1 relative lg:w-64 xl:w-96">
-          <input v-model="searchQuery" @input="handleSearch" type="text" id="mapel-search"
+                <input v-model="searchQuery" type="text" id="mapel-search"
             class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
             placeholder="Cari nama / kode" />
         </div>
@@ -36,23 +36,24 @@
 
     <!-- Table -->
     <MyTable
-      :data="paginatedData"
+      :data="rows"
       :columns="columns"
       :loading="loading"
       :show-actions="true"
       :show-pagination="true"
-      :current-page="currentPage"
+      :current-page="page"
       :total-pages="totalPages"
       :total-items="totalItems"
-      v-model:pageSize="localPageSize"
+      :page-size="pageSize"
       :sort-key="sortBy"
       :sort-order="sortOrder"
-      @sort="toggleSort"
+      @sort="handleSort"
       @edit="openEditModal"
       @delete="handleDelete"
       @prev-page="previousPage"
       @next-page="nextPage"
-      @go-to-page="goToPageLocal"
+      @go-to-page="setPage"
+      @update:pageSize="setPageSize"
     >
       <template #cell-kode="{ row }">
         <Badge :label="row.kode" variant="primary" />
@@ -141,11 +142,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { Alert, Badge, Input, Modal } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
-import { useTable } from '@/composables/useTable.js'
+import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import mapelRepository from '@/repositories/mapelRepository'
 import konfigurasiRepository from '@/repositories/konfigurasiRepository'
 
@@ -156,27 +157,26 @@ const columns = [
   { key: 'tingkat_tertentu', label: 'Tingkat Tertentu', sortable: false },
 ]
 
+const searchQuery = ref('')
+const searchDebounce = ref(null)
 const {
-  data,
-  paginatedData,
-  setData,
-  searchQuery,
+  rows,
+  loading,
+  page,
+  pageSize,
+  totalPages,
+  totalItems,
   sortBy,
   sortOrder,
-  loading,
-  totalPages,
-  currentPage,
-  goToPage,
-  nextPage: nextPageComposable,
-  previousPage: previousPageComposable,
-  pageSize,
-  totalItems,
-} = useTable([], {
-  pageSize: 50,
-  searchFields: ['nama', 'kode'],
-})
+  setPage,
+  nextPage,
+  previousPage,
+  setPageSize,
+  setSearchValue,
+  toggleSort,
+  refresh
+} = useRemoteTable((params) => mapelRepository.getAll(params))
 
-const localPageSize = ref(pageSize.value)
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -198,9 +198,13 @@ const alert = ref({
   message: ''
 })
 
-// Watch for page size changes from MyTable
-watch(localPageSize, (newSize) => {
-  pageSize.value = newSize
+watch(searchQuery, (value) => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
+  searchDebounce.value = setTimeout(() => {
+    setSearchValue(value)
+  }, 600)
 })
 
 const showAlert = (type, message) => {
@@ -208,25 +212,6 @@ const showAlert = (type, message) => {
   setTimeout(() => {
     alert.value.show = false
   }, 3000)
-}
-
-const fetchMapels = async () => {
-  loading.value = true
-  try {
-    const response = await mapelRepository.getAll({ pageSize: 1000 })
-    if (Array.isArray(response.data)) {
-      setData(response.data)
-    } else if (Array.isArray(response)) {
-      setData(response)
-    } else {
-      setData([])
-    }
-  } catch (error) {
-    showAlert('error', 'Gagal memuat data mapel')
-    console.error('Error fetching mapels:', error)
-  } finally {
-    loading.value = false
-  }
 }
 
 const fetchPaket = async () => {
@@ -240,30 +225,8 @@ const fetchPaket = async () => {
   }
 }
 
-const toggleSort = ({ key }) => {
-  if (sortBy.value === key) {
-    if (sortOrder.value === 'asc') {
-      sortOrder.value = 'desc'
-    } else if (sortOrder.value === 'desc') {
-      sortBy.value = null
-      sortOrder.value = null
-    }
-  } else {
-    sortBy.value = key
-    sortOrder.value = 'asc'
-  }
-}
-
-const goToPageLocal = (page) => {
-  goToPage(page)
-}
-
-const previousPage = () => {
-  previousPageComposable()
-}
-
-const nextPage = () => {
-  nextPageComposable()
+const handleSort = ({ key }) => {
+  toggleSort(key)
 }
 
 const openCreateModal = () => {
@@ -307,7 +270,7 @@ const handleSubmit = async () => {
     }
 
     closeModal()
-    fetchMapels()
+    refresh()
   } catch (error) {
     showAlert('error', 'Gagal menyimpan data mapel')
     console.error(error)
@@ -322,7 +285,7 @@ const handleDelete = async (id) => {
   try {
     await mapelRepository.delete(id)
     showAlert('success', 'Mapel berhasil dihapus')
-    fetchMapels()
+    refresh()
   } catch (error) {
     showAlert('error', 'Gagal menghapus mapel')
     console.error(error)
@@ -330,7 +293,13 @@ const handleDelete = async (id) => {
 }
 
 onMounted(() => {
-  fetchMapels()
+  refresh()
   fetchPaket()
+})
+
+onBeforeUnmount(() => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
 })
 </script>

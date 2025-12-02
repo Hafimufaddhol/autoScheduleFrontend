@@ -24,6 +24,10 @@ const guruRepository = {
     return axios.get(`${API_URL}/guru${q}`).then(r => r.data)
   },
 
+  getReference() {
+    return axios.get(`${API_URL}/guru/reference`).then(r => r.data)
+  },
+
   getById(id) {
     return axios.get(`${API_URL}/guru/${id}`).then(r => r.data)
   },

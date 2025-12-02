@@ -24,6 +24,10 @@ const kelasRepository = {
     return axios.get(`${API_URL}/kelas${q}`).then(r => r.data)
   },
 
+  getReference() {
+    return axios.get(`${API_URL}/kelas/reference`).then(r => r.data)
+  },
+
   getById(id) {
     return axios.get(`${API_URL}/kelas/${id}`).then(r => r.data)
   },

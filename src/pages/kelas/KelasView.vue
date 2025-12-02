@@ -30,21 +30,22 @@
     <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
     <MyTable
-      :data="paginatedData"
+      :data="rows"
       :columns="columns"
       :loading="loading"
       :show-actions="false"
       :show-pagination="true"
-      :current-page="currentPage"
+      :current-page="page"
       :total-pages="totalPages"
       :total-items="totalItems"
-      v-model:pageSize="localPageSize"
+      :page-size="pageSize"
       :sort-key="sortBy"
       :sort-order="sortOrder"
-      @sort="toggleSort"
+      @sort="handleSort"
       @prev-page="previousPage"
       @next-page="nextPage"
-      @go-to-page="goToPageLocal"
+      @go-to-page="setPage"
+      @update:pageSize="setPageSize"
     >
       <template #cell-paket="{ row }">
         <Badge :label="row.paket || row.jurusan || 'Umum'" />
@@ -66,13 +67,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Alert, Badge } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
 import ActionDropdown from '@/components/ui/ActionDropdown.vue'
-import { useTable } from '@/composables/useTable.js'
+import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import kelasRepository from '@/repositories/kelasRepository'
 
 const router = useRouter()
@@ -85,30 +86,35 @@ const columns = [
   { key: 'actions', label: 'Aksi', sortable: false }
 ]
 
+const searchQuery = ref('')
+const searchDebounce = ref(null)
 const {
-  paginatedData,
-  setData,
-  searchQuery,
+  rows,
+  loading,
+  page,
+  pageSize,
+  totalPages,
+  totalItems,
   sortBy,
   sortOrder,
-  loading,
-  totalPages,
-  currentPage,
-  goToPage,
-  nextPage: nextPageComposable,
-  previousPage: previousPageComposable,
-  pageSize,
-  totalItems
-} = useTable([], {
-  pageSize: 50,
-  searchFields: ['nama', 'kode']
-})
+  setPage,
+  nextPage,
+  previousPage,
+  setPageSize,
+  setSearchValue,
+  toggleSort,
+  refresh
+} = useRemoteTable((params) => kelasRepository.getAll(params))
 
-const localPageSize = ref(pageSize.value)
 const alert = ref({ show: false, type: 'success', message: '' })
 
-watch(localPageSize, (newSize) => {
-  pageSize.value = newSize
+watch(searchQuery, (value) => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
+  searchDebounce.value = setTimeout(() => {
+    setSearchValue(value)
+  }, 600)
 })
 
 const showAlert = (type, message) => {
@@ -118,49 +124,8 @@ const showAlert = (type, message) => {
   }, 3000)
 }
 
-const fetchKelas = async () => {
-  loading.value = true
-  try {
-    const response = await kelasRepository.getAll({ pageSize: 1000 })
-    if (Array.isArray(response?.data)) {
-      setData(response.data)
-    } else if (Array.isArray(response)) {
-      setData(response)
-    } else {
-      setData([])
-    }
-  } catch (error) {
-    showAlert('error', 'Gagal memuat data kelas')
-    console.error('Error fetching kelas:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const toggleSort = ({ key }) => {
-  if (sortBy.value === key) {
-    if (sortOrder.value === 'asc') {
-      sortOrder.value = 'desc'
-    } else if (sortOrder.value === 'desc') {
-      sortBy.value = null
-      sortOrder.value = null
-    }
-  } else {
-    sortBy.value = key
-    sortOrder.value = 'asc'
-  }
-}
-
-const goToPageLocal = (page) => {
-  goToPage(page)
-}
-
-const previousPage = () => {
-  previousPageComposable()
-}
-
-const nextPage = () => {
-  nextPageComposable()
+const handleSort = ({ key }) => {
+  toggleSort(key)
 }
 
 const goToCreate = () => {
@@ -171,9 +136,9 @@ const handleDelete = async (id) => {
   if (!id) return
   if (!confirm('Yakin ingin menghapus kelas ini? Semua aturan dan JP mapel terkait akan ikut dihapus.')) return
   try {
-    await kelasRepository.delete(id)
-    showAlert('success', 'Kelas berhasil dihapus')
-    fetchKelas()
+  await kelasRepository.delete(id)
+  showAlert('success', 'Kelas berhasil dihapus')
+  refresh()
   } catch (error) {
     showAlert('error', 'Gagal menghapus kelas')
     console.error(error)
@@ -181,6 +146,12 @@ const handleDelete = async (id) => {
 }
 
 onMounted(() => {
-  fetchKelas()
+  refresh()
+})
+
+onBeforeUnmount(() => {
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
+  }
 })
 </script>

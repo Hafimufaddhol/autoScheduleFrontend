@@ -93,15 +93,27 @@
             </div>
 
             <!-- Page size selector -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 relative" ref="pageSizeMenuRef">
                 <label class="text-sm text-gray-600">Jumlah baris:</label>
-                <select :value="pageSize" @change="emit('update:pageSize', +$event.target.value)"
-                    class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-cyan-500">
-                    <option :value="5">5</option>
-                    <option :value="10">10</option>
-                    <option :value="50">50</option>
-                    <option :value="100">100</option>
-                </select>
+                <div class="relative">
+                    <button type="button"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        @click.stop="togglePageSizeMenu">
+                        {{ pageSize }}
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </button>
+                    <transition name="fade">
+                        <div v-if="pageSizeMenuOpen"
+                            class="absolute right-0 bottom-full z-20 mb-2 w-36 origin-bottom-right rounded-lg border border-gray-200 bg-white p-1 shadow-xl">
+                            <button v-for="option in pageSizeOptions" :key="option" type="button"
+                                class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+                                @click.stop="selectPageSize(option)">
+                                <span>{{ option }} baris</span>
+                                <i v-if="pageSize === option" class="fa-solid fa-check text-cyan-600"></i>
+                            </button>
+                        </div>
+                    </transition>
+                </div>
             </div>
 
             <!-- Buttons -->
@@ -132,7 +144,7 @@
 </template>
 
 <script setup>
-
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const emit = defineEmits(['sort', 'edit', 'delete', 'prev-page', 'next-page', 'go-to-page', 'update:pageSize'])
 
@@ -140,6 +152,38 @@ const handleColumnClick = (col) => {
     if (col.sortable === false) return
     emit('sort', { key: col.key })
 }
+
+const pageSizeOptions = [5, 10, 50, 100]
+const pageSizeMenuOpen = ref(false)
+const pageSizeMenuRef = ref(null)
+
+const togglePageSizeMenu = () => {
+    pageSizeMenuOpen.value = !pageSizeMenuOpen.value
+}
+
+const closePageSizeMenu = () => {
+    pageSizeMenuOpen.value = false
+}
+
+const selectPageSize = (value) => {
+    emit('update:pageSize', value)
+    closePageSizeMenu()
+}
+
+const handleClickOutside = (event) => {
+    if (!pageSizeMenuRef.value) return
+    if (!pageSizeMenuRef.value.contains(event.target)) {
+        closePageSizeMenu()
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside)
+})
 
 defineProps({
     data: { type: Array, required: true },
@@ -156,3 +200,16 @@ defineProps({
 })
 
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
+}
+</style>
