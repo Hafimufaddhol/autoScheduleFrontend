@@ -1,34 +1,26 @@
 <template>
   <div class="p-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Data Mata Pelajaran</h1>
-        <p class="mt-2 text-gray-600">Kelola mata pelajaran dengan filter paket dan tingkat tertentu</p>
-      </div>
-    </div>
-
-    <!-- Search & Filters -->
-    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
-      <!-- Search -->
-      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
-        <label for="mapel-search" class="sr-only">Search</label>
-        <div class="mt-1 relative lg:w-64 xl:w-96">
-                <input v-model="searchQuery" type="text" id="mapel-search"
-            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
-            placeholder="Cari nama / kode" />
-        </div>
-      </form>
-
-      <!-- Buttons -->
-      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
-        <BaseButton 
+    <PageHeader
+      title="Data Mata Pelajaran"
+      subtitle="Kelola mata pelajaran dengan filter paket dan tingkat tertentu"
+    >
+      <template #actions>
+        <BaseButton
           icon="fas fa-plus"
           size="lg"
           label="Tambah Mapel"
           @click="openCreateModal"
         />
-      </div>
+      </template>
+    </PageHeader>
+
+    <div class="mb-6 max-w-xl">
+      <SearchBar
+        v-model="searchQuery"
+        id="mapel-search"
+        placeholder="Cari nama / kode"
+        label="Cari Mapel"
+      />
     </div>
 
     <!-- Alert -->
@@ -95,7 +87,7 @@
                   :id="'jur-' + jur"
                   :value="jur"
                   v-model="form.paket_tertentu"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
                 />
                 <label :for="'jur-' + jur" class="ml-2 block text-sm text-gray-900">{{ jur }}</label>
               </div>
@@ -112,7 +104,7 @@
                   :id="'tingkat-' + tingkat"
                   :value="tingkat"
                   v-model="form.tingkat_tertentu"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
                 />
                 <label :for="'tingkat-' + tingkat" class="ml-2 block text-sm text-gray-900">{{ tingkat }}</label>
               </div>
@@ -124,14 +116,14 @@
           <button
             type="button"
             @click="closeModal"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg"
+            class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Batal
           </button>
           <button
             type="submit"
             :disabled="submitting"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-50"
+            class="inline-flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-50"
           >
             {{ submitting ? 'Menyimpan...' : (isEdit ? 'Update' : 'Simpan') }}
           </button>
@@ -143,9 +135,10 @@
 
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
-import { Alert, Badge, Input, Modal } from '@/components/ui'
+import { Alert, Badge, Input, Modal, SearchBar } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
+import { PageHeader } from '@/components'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import mapelRepository from '@/repositories/mapelRepository'
 import konfigurasiRepository from '@/repositories/konfigurasiRepository'

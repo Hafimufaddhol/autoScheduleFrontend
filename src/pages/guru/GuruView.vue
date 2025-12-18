@@ -1,34 +1,26 @@
 <template>
   <div class="p-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Data Guru</h1>
-        <p class="mt-2 text-gray-600">Kelola data guru dengan kompetensi dan jadwal ketersediaan</p>
-      </div>
-    </div>
-
-    <!-- Search & Filters -->
-    <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 mb-4 gap-4">
-      <!-- Search -->
-      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
-        <label for="guru-search" class="sr-only">Search</label>
-        <div class="mt-1 relative lg:w-64 xl:w-96">
-          <input v-model="searchQuery" type="text" id="guru-search"
-            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
-            placeholder="Cari nama / kode" />
-        </div>
-      </form>
-
-      <!-- Buttons -->
-      <div class="flex items-center space-x-2 sm:space-x-3 ml-auto mt-3 sm:mt-0">
-        <BaseButton 
+    <PageHeader
+      title="Data Guru"
+      subtitle="Kelola data guru dengan kompetensi dan jadwal ketersediaan"
+    >
+      <template #actions>
+        <BaseButton
           icon="fas fa-plus"
           size="lg"
           label="Tambah Guru"
           @click="openCreateModal"
         />
-      </div>
+      </template>
+    </PageHeader>
+
+    <div class="mb-6 max-w-xl">
+      <SearchBar
+        v-model="searchQuery"
+        id="guru-search"
+        placeholder="Cari nama / kode"
+        label="Cari Guru"
+      />
     </div>
 
     <!-- Alert -->
@@ -74,6 +66,15 @@
         <div class="space-y-4">
           <Input v-model="form.nama" label="Nama Guru" placeholder="Contoh: Budi Santoso" required />
           <Input v-model="form.kode" label="Kode Guru" placeholder="Contoh: GR-001" required />
+          <Input
+            v-model.number="form.max_jp_per_minggu"
+            type="number"
+            min="1"
+            label="Max JP per Minggu"
+            placeholder="Mis. 24"
+            helper-text="Batas jumlah jam pelajaran guru dalam seminggu"
+            required
+          />
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi (Mapel)</label>
@@ -151,7 +152,7 @@
                   :id="'hari-' + hari"
                   :value="hari"
                   v-model="form.hari_tidak_masuk"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
                 />
                 <label :for="'hari-' + hari" class="ml-2 block text-sm text-gray-900">{{ hari }}</label>
               </div>
@@ -163,14 +164,14 @@
           <button
             type="button"
             @click="closeModal"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg"
+            class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Batal
           </button>
           <button
             type="submit"
             :disabled="submitting"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-50"
+            class="inline-flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-50"
           >
             {{ submitting ? 'Menyimpan...' : (isEdit ? 'Update' : 'Simpan') }}
           </button>
@@ -182,7 +183,8 @@
 
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue'
-import { Alert, Badge, Input, Modal } from '@/components/ui'
+import { Alert, Badge, Input, Modal, SearchBar } from '@/components/ui'
+import { PageHeader } from '@/components'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
@@ -192,6 +194,7 @@ import mapelRepository from '@/repositories/mapelRepository'
 const columns = [
   { key: 'nama', label: 'Nama', sortable: true },
   { key: 'kode', label: 'Kode', sortable: true },
+  { key: 'max_jp_per_minggu', label: 'Max JP/Mgg', sortable: false },
   { key: 'kompetensi', label: 'Kompetensi', sortable: false },
   { key: 'hari_tidak_masuk', label: 'Hari Tidak Masuk', sortable: false },
 ]
@@ -227,6 +230,7 @@ const currentId = ref(null)
 const form = ref({
   nama: '',
   kode: '',
+  max_jp_per_minggu: 24,
   hari_tidak_masuk: []
 })
 
@@ -324,6 +328,7 @@ const openCreateModal = () => {
   form.value = {
     nama: '',
     kode: '',
+    max_jp_per_minggu: 24,
     hari_tidak_masuk: []
   }
   selectedKompetensi.value = []
@@ -336,6 +341,7 @@ const openEditModal = (guru) => {
   form.value = {
     nama: guru.nama,
     kode: guru.kode,
+    max_jp_per_minggu: guru.max_jp_per_minggu ?? 24,
     hari_tidak_masuk: guru.hari_tidak_masuk || []
   }
   // Convert kompetensi object to array
@@ -358,6 +364,7 @@ const handleSubmit = async () => {
 
     const payload = {
       ...form.value,
+      max_jp_per_minggu: form.value.max_jp_per_minggu ? Number(form.value.max_jp_per_minggu) : null,
       kompetensi: kompetensiObj
     }
 

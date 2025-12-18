@@ -1,12 +1,9 @@
 <template>
   <div class="p-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Aturan Kelas</h1>
-        <p class="mt-2 text-gray-600">Atur slot harian, hari libur, dan slot terkunci untuk setiap kelas</p>
-      </div>
-    </div>
+    <PageHeader
+      title="Aturan Kelas"
+      subtitle="Atur slot harian, hari libur, dan slot terkunci untuk setiap kelas"
+    />
 
     <!-- Alert -->
     <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
@@ -18,7 +15,7 @@
         <select
           v-model="selectedKelasId"
           @change="loadRules"
-          class="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
         >
           <option value="">-- Pilih Kelas --</option>
           <option v-for="kelas in kelasList" :key="kelas.id" :value="kelas.id">
@@ -37,10 +34,10 @@
           <p class="text-sm text-gray-600 mb-4">Tentukan jumlah slot untuk setiap hari dalam seminggu</p>
           
           <div class="space-y-3">
-            <div v-for="(slot, index) in form.slot_harian" :key="index" class="flex items-center gap-3">
+            <div v-for="(slot, index) in form.slot_harian" :key="index" class="flex flex-col gap-3 md:flex-row md:items-center">
               <select
                 v-model.number="slot.hari"
-                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option :value="1">Senin</option>
                 <option :value="2">Selasa</option>
@@ -49,16 +46,18 @@
                 <option :value="5">Jumat</option>
                 <option :value="6">Sabtu</option>
               </select>
-              
-              <input
-                v-model.number="slot.total_slot"
-                type="number"
-                min="1"
-                max="12"
-                placeholder="Jumlah slot"
-                class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
+
+              <div class="w-full md:w-40">
+                <Input
+                  v-model.number="slot.total_slot"
+                  type="number"
+                  min="1"
+                  max="12"
+                  label="Total Slot"
+                  placeholder="Jumlah slot"
+                />
+              </div>
+
               <button
                 type="button"
                 @click="removeSlotHarian(index)"
@@ -72,7 +71,7 @@
           <button
             type="button"
             @click="addSlotHarian"
-            class="mt-3 text-blue-600 hover:text-blue-900 font-medium"
+            class="mt-3 text-cyan-600 hover:text-cyan-800 font-medium"
           >
             <i class="fa-solid fa-plus mr-1"></i> Tambah Slot Harian
           </button>
@@ -90,7 +89,7 @@
                 :id="'disabled-' + hari.value"
                 :value="hari.value"
                 v-model="form.disabled_day"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                class="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
               />
               <label :for="'disabled-' + hari.value" class="ml-2 block text-sm text-gray-900">
                 {{ hari.label }}
@@ -105,10 +104,10 @@
           <p class="text-sm text-gray-600 mb-4">Kunci slot tertentu dengan mapel yang sudah ditentukan</p>
           
           <div class="space-y-3">
-            <div v-for="(locked, index) in form.locked_slot" :key="index" class="flex items-center gap-3">
+            <div v-for="(locked, index) in form.locked_slot" :key="index" class="flex flex-col gap-3 md:flex-row md:items-center">
               <select
                 v-model.number="locked.hari"
-                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full md:w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option :value="1">Senin</option>
                 <option :value="2">Selasa</option>
@@ -117,18 +116,20 @@
                 <option :value="5">Jumat</option>
                 <option :value="6">Sabtu</option>
               </select>
-              
-              <input
-                v-model.number="locked.slot"
-                type="number"
-                min="1"
-                placeholder="Slot ke-"
-                class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
+
+              <div class="w-full md:w-28">
+                <Input
+                  v-model.number="locked.slot"
+                  type="number"
+                  min="1"
+                  label="Slot ke-"
+                  placeholder="Mis. 3"
+                />
+              </div>
+
               <select
                 v-model="locked.mapel_id"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="">Pilih Mapel</option>
                 <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.kode">
@@ -149,7 +150,7 @@
           <button
             type="button"
             @click="addLockedSlot"
-            class="mt-3 text-blue-600 hover:text-blue-900 font-medium"
+            class="mt-3 text-cyan-600 hover:text-cyan-800 font-medium"
           >
             <i class="fa-solid fa-plus mr-1"></i> Tambah Slot Terkunci
           </button>
@@ -160,7 +161,7 @@
           <button
             type="submit"
             :disabled="submitting"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg disabled:opacity-50"
+            class="inline-flex items-center rounded-lg bg-cyan-600 px-5 py-2 text-white font-semibold shadow-sm hover:bg-cyan-700 disabled:opacity-50"
           >
             {{ submitting ? 'Menyimpan...' : 'Simpan Aturan' }}
           </button>
@@ -180,7 +181,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Card, Alert } from '@/components/ui'
+import { Card, Alert, Input } from '@/components/ui'
+import { PageHeader } from '@/components'
 import kelasRepository from '@/repositories/kelasRepository'
 import mapelRepository from '@/repositories/mapelRepository'
 import kelasRulesRepository from '@/repositories/kelasRulesRepository'

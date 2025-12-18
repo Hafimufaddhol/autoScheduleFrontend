@@ -7,6 +7,9 @@ function buildQuery(params = {}) {
   const searchParams = new URLSearchParams()
   if (params.kelasId) searchParams.set('kelas_id', params.kelasId)
   if (params.mapelId) searchParams.set('mapel_id', params.mapelId)
+  if (params.page) searchParams.set('page', params.page)
+  if (params.pageSize) searchParams.set('page_size', params.pageSize)
+  if (params.legacy) searchParams.set('legacy', params.legacy ? '1' : '0')
   return searchParams.toString() ? `?${searchParams.toString()}` : ''
 }
 

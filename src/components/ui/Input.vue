@@ -89,10 +89,14 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 
 // Props
 const props = defineProps({
+  id: {
+    type: String,
+    default: null
+  },
   // Basic props
   modelValue: {
     type: [String, Number],
@@ -207,7 +211,8 @@ const emit = defineEmits([
 
 // Reactive data
 const passwordVisible = ref(false)
-const inputId = ref(`input-${Math.random().toString(36).substr(2, 9)}`)
+const internalId = ref(`input-${Math.random().toString(36).substr(2, 9)}`)
+const inputId = computed(() => props.id || internalId.value)
 
 // Computed
 const inputType = computed(() => {
@@ -239,9 +244,9 @@ const inputClasses = computed(() => {
 
   // Variant classes
   const variantClasses = {
-    default: 'border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-    filled: 'bg-gray-50 border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-    underlined: 'border-0 border-b-2 border-gray-300 rounded-none focus:ring-0 focus:border-blue-500'
+    default: 'border-gray-300 focus:ring-cyan-500 focus:border-cyan-500',
+    filled: 'bg-gray-50 border border-transparent focus:ring-cyan-500 focus:border-cyan-500',
+    underlined: 'border-0 border-b-2 border-gray-300 rounded-none focus:ring-0 focus:border-cyan-500'
   }
 
   // State classes
@@ -251,7 +256,7 @@ const inputClasses = computed(() => {
 
   // Disabled classes
   const disabledClasses = props.disabled 
-    ? 'bg-gray-100 cursor-not-allowed' 
+    ? 'bg-gray-100 cursor-not-allowed text-gray-500' 
     : 'bg-white'
 
   // Padding for icons

@@ -102,19 +102,26 @@
           >
             <i class="fas fa-chevron-left"></i>
           </button>
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            @click="goToPage(page)"
-            :class="[
-              'px-3 py-1 border rounded',
-              currentPage === page 
-                ? 'bg-cyan-600 text-white' 
-                : 'hover:bg-gray-50'
-            ]"
-          >
-            {{ page }}
-          </button>
+          <template v-for="entry in visiblePages" :key="entry.key">
+            <button
+              v-if="entry.type === 'page'"
+              @click="goToPage(entry.page)"
+              :class="[
+                'px-3 py-1 border rounded',
+                currentPage === entry.page 
+                  ? 'bg-cyan-600 text-white' 
+                  : 'hover:bg-gray-50'
+              ]"
+            >
+              {{ entry.label }}
+            </button>
+            <span
+              v-else
+              class="px-3 py-1 text-gray-400 select-none"
+            >
+              …
+            </span>
+          </template>
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
@@ -263,35 +270,40 @@ export default {
     });
 
     const visiblePages = computed(() => {
-      const pages = [];
+      const entries = [];
       const total = totalPages.value;
       const current = currentPage.value;
-      
+
+      const addPage = (page) => {
+        entries.push({ type: 'page', page, label: page, key: `page-${page}` });
+      };
+      const addEllipsis = (position) => {
+        entries.push({ type: 'ellipsis', key: `ellipsis-${position}` });
+      };
+
       if (total <= 7) {
-        for (let i = 1; i <= total; i++) pages.push(i);
+        for (let i = 1; i <= total; i += 1) addPage(i);
+      } else if (current <= 4) {
+        for (let i = 1; i <= 5; i += 1) addPage(i);
+        addEllipsis('right');
+        addPage(total);
+      } else if (current >= total - 3) {
+        addPage(1);
+        addEllipsis('left');
+        for (let i = total - 4; i <= total; i += 1) addPage(i);
       } else {
-        if (current <= 4) {
-          for (let i = 1; i <= 5; i++) pages.push(i);
-          pages.push('...');
-          pages.push(total);
-        } else if (current >= total - 3) {
-          pages.push(1);
-          pages.push('...');
-          for (let i = total - 4; i <= total; i++) pages.push(i);
-        } else {
-          pages.push(1);
-          pages.push('...');
-          for (let i = current - 1; i <= current + 1; i++) pages.push(i);
-          pages.push('...');
-          pages.push(total);
-        }
+        addPage(1);
+        addEllipsis('left');
+        for (let i = current - 1; i <= current + 1; i += 1) addPage(i);
+        addEllipsis('right');
+        addPage(total);
       }
-      
-      return pages;
+
+      return entries;
     });
 
     const goToPage = (page) => {
-      if (page === '...') return;
+      if (page < 1 || page > totalPages.value) return;
       currentPage.value = page;
     };
 

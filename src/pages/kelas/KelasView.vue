@@ -1,27 +1,24 @@
 <template>
   <div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-sm text-gray-500 uppercase tracking-wide">Data Master</p>
-        <h1 class="text-3xl font-bold text-gray-900">Kelas</h1>
-        <p class="mt-1 text-gray-600">Kelola info kelas, aturan, dan kebutuhan JP per mapel melalui editor halaman penuh.</p>
-      </div>
-      <BaseButton icon="fas fa-plus" label="Tambah Kelas" size="lg" @click="goToCreate" />
-    </div>
+    <PageHeader
+      title="Kelas"
+      subtitle="Kelola info kelas, aturan, dan kebutuhan JP per mapel melalui editor halaman penuh."
+      eyebrow="Data Master"
+    >
+      <template #actions>
+        <BaseButton icon="fas fa-plus" label="Tambah Kelas" size="lg" @click="goToCreate" />
+      </template>
+    </PageHeader>
 
     <div class="sm:flex items-center sm:divide-x sm:divide-gray-100 gap-4">
-      <form class="lg:pr-3 w-full sm:w-auto" @submit.prevent>
-        <label for="kelas-search" class="sr-only">Pencarian</label>
-        <div class="mt-1 relative lg:w-64 xl:w-96">
-          <input
-            v-model="searchQuery"
-            type="text"
-            id="kelas-search"
-            class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-cyan-600 focus:border-cyan-600 block w-full p-2.5"
-            placeholder="Cari nama / kode"
-          />
-        </div>
-      </form>
+      <div class="lg:pr-3 w-full sm:w-auto">
+        <SearchBar
+          v-model="searchQuery"
+          id="kelas-search"
+          placeholder="Cari nama / kode"
+          label="Cari Kelas"
+        />
+      </div>
       <p class="text-sm text-gray-500 sm:pl-4">
         Klik tombol edit di setiap baris untuk loncat langsung ke tab Info, Aturan, atau JP Mapel.
       </p>
@@ -69,10 +66,11 @@
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { Alert, Badge } from '@/components/ui'
+import { Alert, Badge, SearchBar } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
 import ActionDropdown from '@/components/ui/ActionDropdown.vue'
+import { PageHeader } from '@/components'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import kelasRepository from '@/repositories/kelasRepository'
 

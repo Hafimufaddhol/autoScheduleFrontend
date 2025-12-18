@@ -9,6 +9,10 @@ const kelasRulesRepository = {
 
   update(kelasId, data) {
     return axios.put(`${API_URL}/kelas_rules/${kelasId}`, data)
+  },
+
+  copySlotHarian(payload) {
+    return axios.post(`${API_URL}/kelas_rules/copy-slot`, payload)
   }
 }
 

@@ -7,6 +7,38 @@
       <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
       <Card>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Salin Slot Harian</h3>
+            <p class="text-sm text-gray-500">Ambil aturan slot harian dari kelas lain untuk menghemat waktu.</p>
+          </div>
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-gray-700">Kelas Sumber</label>
+              <select v-model="copySourceId" class="w-64 rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500">
+                <option value="">Pilih kelas</option>
+                <option v-for="kls in kelasOptions" :key="kls.id" :value="kls.id" :disabled="kls.id === kelas.id">
+                  {{ kls.nama }} ({{ kls.kode || kls.id }})
+                </option>
+              </select>
+            </div>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-600">
+              <input type="checkbox" v-model="overwriteSlot" class="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
+              Timpa slot saat ini
+            </label>
+            <BaseButton
+              icon="fa-solid fa-copy"
+              label="Salin Slot"
+              size="sm"
+              :disabled="!copySourceId || !kelas?.id"
+              :loading="copyLoading"
+              @click="handleCopySlot"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-xl font-semibold text-gray-900">Slot Harian</h3>
@@ -100,6 +132,7 @@ import { Card, Alert } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import kelasRulesRepository from '@/repositories/kelasRulesRepository'
 import mapelRepository from '@/repositories/mapelRepository'
+import kelasRepository from '@/repositories/kelasRepository'
 
 const props = defineProps({
   kelas: { type: Object, required: true },
@@ -116,6 +149,10 @@ const form = ref({
   disabled_day: [],
   locked_slot: []
 })
+const kelasOptions = ref([])
+const copySourceId = ref('')
+const overwriteSlot = ref(true)
+const copyLoading = ref(false)
 
 const hariOptions = [
   { value: 1, label: 'Senin' },
@@ -140,6 +177,15 @@ const fetchMapels = async () => {
     mapelList.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error('Gagal memuat mapel', error)
+  }
+}
+
+const fetchKelasOptions = async () => {
+  try {
+    const response = await kelasRepository.getAll({ pageSize: 200 })
+    kelasOptions.value = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])
+  } catch (error) {
+    console.error('Gagal memuat daftar kelas', error)
   }
 }
 
@@ -195,7 +241,27 @@ const handleSubmit = async () => {
   }
 }
 
+const handleCopySlot = async () => {
+  if (!copySourceId.value || !props.kelas?.id) return
+  copyLoading.value = true
+  try {
+    await kelasRulesRepository.copySlotHarian({
+      source_kelas_id: copySourceId.value,
+      target_kelas_ids: [props.kelas.id],
+      overwrite: overwriteSlot.value
+    })
+    showAlert('success', 'Slot harian berhasil disalin')
+    await loadRules()
+  } catch (error) {
+    console.error(error)
+    showAlert('error', 'Gagal menyalin slot harian')
+  } finally {
+    copyLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchMapels()
+  fetchKelasOptions()
 })
 </script>

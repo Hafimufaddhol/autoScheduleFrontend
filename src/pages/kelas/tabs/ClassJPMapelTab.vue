@@ -7,7 +7,7 @@
     <div v-else class="space-y-6">
       <Alert v-if="alert.show" :type="alert.type" :message="alert.message" @close="alert.show = false" />
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid gap-4 ">
         <Card>
           <h3 class="text-lg font-semibold text-gray-900">Salin dari Kelas Lain</h3>
           <p class="text-sm text-gray-500">Gunakan konfigurasi JP kelas lain sebagai template instan.</p>
@@ -23,6 +23,7 @@
               Timpa konfigurasi saat ini
             </label>
             <BaseButton
+              class="ml-3"
               icon="fa-solid fa-copy"
               label="Salin konfigurasi"
               size="sm"
@@ -33,7 +34,7 @@
           </div>
         </Card>
 
-        <Card>
+        <!-- <Card>
           <h3 class="text-lg font-semibold text-gray-900">Auto Generate JP</h3>
           <p class="text-sm text-gray-500">Buat entry otomatis berdasarkan jurusan & tingkat mapel yang cocok.</p>
           <div class="mt-3 space-y-3">
@@ -58,7 +59,7 @@
               @click="handleAutoGenerate"
             />
           </div>
-        </Card>
+        </Card> -->
       </div>
 
       <Card>
@@ -344,7 +345,7 @@ const fetchPairs = async () => {
   loading.value = true
   try {
     await fetchMapelMaster()
-    const response = await kelasMapelJpRepository.list({ kelasId: props.kelas.id })
+  const response = await kelasMapelJpRepository.list({ kelasId: props.kelas.id, legacy: true })
     const pairs = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])
     hydrateRows(pairs)
   } catch (error) {

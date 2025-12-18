@@ -189,15 +189,22 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in day.rows" :key="row.slot">
-                    <td class="border px-2 py-1 text-center text-sm bg-gray-50 font-semibold">{{ row.slot }}</td>
-                    <template v-for="cell in row.cells" :key="cell.key">
-                      <td v-if="cell.show" :rowspan="cell.rowspan" class="border align-top p-2 text-xs">
-                        <div v-if="cell.text" class="space-y-1">
-                          <div class="font-semibold text-gray-900">{{ cell.text.mapel }}</div>
-                          <div class="text-gray-600">{{ cell.text.guru }}</div>
-                        </div>
+                  <tr v-for="row in day.rows" :key="row.key || row.slot" :class="row.isBreak ? 'bg-yellow-50' : ''">
+                    <template v-if="row.isBreak">
+                      <td :colspan="kelasOrdered.length + 1" class="border px-2 py-1 text-center text-xs font-semibold text-yellow-700">
+                        {{ row.label || 'Istirahat' }}
                       </td>
+                    </template>
+                    <template v-else>
+                      <td class="border px-2 py-1 text-center text-sm bg-gray-50 font-semibold">{{ row.slot }}</td>
+                      <template v-for="cell in row.cells" :key="cell.key">
+                        <td v-if="cell.show" :rowspan="cell.rowspan" class="border align-top p-2 text-xs">
+                          <div v-if="cell.text" class="space-y-1">
+                            <div class="font-semibold text-gray-900">{{ cell.text.mapel }}</div>
+                            <div class="text-gray-600">{{ cell.text.guru }}</div>
+                          </div>
+                        </td>
+                      </template>
                     </template>
                   </tr>
                 </tbody>
@@ -264,9 +271,10 @@ export default {
 
     // Master data maps
     const dayNames = ref(["Senin","Selasa","Rabu","Kamis","Jumat"]);
-    const guruMap = ref({});
-    const mapelMap = ref({});
-    const kelasMap = ref({});
+  const guruMap = ref({});
+  const mapelMap = ref({});
+  const kelasMap = ref({});
+  const breakMarkers = ref([]);
 
     const loadKonfigurasi = async () => {
       try {
@@ -274,6 +282,40 @@ export default {
         const konf = response?.data?.data ?? response?.data ?? {};
         if (Array.isArray(konf.hari) && konf.hari.length) {
           dayNames.value = konf.hari;
+        }
+        const rawBreaks = Array.isArray(konf.jam_istirahat) ? konf.jam_istirahat : [];
+        if (rawBreaks.length) {
+          const parsed = rawBreaks
+            .map((entry, idx) => {
+              const mulai = Number(entry.mulai);
+              const selesai = Number(entry.selesai);
+              if (!Number.isFinite(mulai)) {
+                return null;
+              }
+              const boundary = Number.isFinite(selesai)
+                ? Math.min(mulai, selesai)
+                : mulai;
+              if (!Number.isFinite(boundary) || boundary <= 0) {
+                return null;
+              }
+              const baseLabel = entry.label || entry.nama || `Istirahat ${idx + 1}`;
+              const label = Number.isFinite(mulai) && Number.isFinite(selesai)
+                ? `${baseLabel} (${mulai}-${selesai})`
+                : baseLabel;
+              return { afterSlot: boundary, label };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.afterSlot - b.afterSlot);
+          const dedup = [];
+          const seen = new Set();
+          parsed.forEach(marker => {
+            if (seen.has(marker.afterSlot)) return;
+            seen.add(marker.afterSlot);
+            dedup.push(marker);
+          });
+          breakMarkers.value = dedup;
+        } else {
+          breakMarkers.value = [];
         }
       } catch (_) { /* ignore */ }
     };
@@ -485,10 +527,19 @@ export default {
         }
       }
       if (!maxSlot) maxSlot = 12;
+      const maxBreak = breakMarkers.value.reduce((acc, marker) => Math.max(acc, Number(marker.afterSlot) || 0), 0);
+      if (maxBreak > maxSlot) {
+        maxSlot = maxBreak;
+      }
       const cellMap = new Map();
       for (const k of kelasCols) {
         cellMap.set(k.id, {});
       }
+      const breakBoundarySet = new Set(
+        breakMarkers.value
+          .map(marker => Number(marker.afterSlot))
+          .filter(num => Number.isFinite(num) && num > 0)
+      );
       for (const b of blocks) {
         const k = b.kelas_id;
         if (!cellMap.has(k)) continue;
@@ -496,22 +547,53 @@ export default {
           ? b.slots.slice().sort((a,b) => a-b)
           : Array.from({length: b.size || 0}, (_,i) => (b.start||0)+i);
         if (!slots.length) continue;
-        const start = slots[0];
-        const size = slots.length;
-        cellMap.get(k)[start] = {
-          show: true,
-          rowspan: size,
-          key: `${k}_${start}`,
-          text: { mapel: b.mapel_nama || b.mapel_id, guru: b.guru_nama || b.guru_id }
-        };
-        for (let i = 1; i < size; i++) {
-          const s = start + i;
-          cellMap.get(k)[s] = { show: false, rowspan: 0, key: `${k}_${s}`, text: null };
+        const segments = [];
+        let currentSegment = [];
+        slots.forEach((slot, idx) => {
+          if (!Number.isFinite(slot)) return;
+          if (!currentSegment.length) {
+            currentSegment = [slot];
+            return;
+          }
+          const prev = currentSegment[currentSegment.length - 1];
+          const separated = !Number.isFinite(prev)
+            || slot !== prev + 1
+            || breakBoundarySet.has(prev);
+          if (separated) {
+            segments.push(currentSegment);
+            currentSegment = [slot];
+          } else {
+            currentSegment.push(slot);
+          }
+        });
+        if (currentSegment.length) {
+          segments.push(currentSegment);
         }
+        segments.forEach((segmentSlots, segIdx) => {
+          const segStart = segmentSlots[0];
+          const segSize = segmentSlots.length;
+          const baseKey = `${k}_${segStart}_${segIdx}`;
+          cellMap.get(k)[segStart] = {
+            show: true,
+            rowspan: segSize,
+            key: baseKey,
+            text: { mapel: b.mapel_nama || b.mapel_id, guru: b.guru_nama || b.guru_id }
+          };
+          for (let i = 1; i < segSize; i++) {
+            const sVal = segmentSlots[i];
+            cellMap.get(k)[sVal] = { show: false, rowspan: 0, key: `${baseKey}_${i}`, text: null };
+          }
+        });
       }
       const rows = [];
+      const breakLookup = {};
+      breakMarkers.value.forEach((marker, idx) => {
+        const boundary = Number(marker.afterSlot);
+        if (!Number.isFinite(boundary) || boundary <= 0) return;
+        breakLookup[boundary] = marker.label || `Istirahat ${idx + 1}`;
+      });
       for (let s = 1; s <= maxSlot; s++) {
-        const row = { slot: s, cells: [] };
+        const row = { key: `slot-${hari_index}-${s}`, slot: s, cells: [], isBreak: false };
         for (const k of kelasCols) {
           const spec = cellMap.get(k.id)[s];
           if (spec) {
@@ -521,6 +603,13 @@ export default {
           }
         }
         rows.push(row);
+        if (breakLookup[s]) {
+          rows.push({
+            key: `break-${hari_index}-${s}`,
+            isBreak: true,
+            label: breakLookup[s],
+          });
+        }
       }
       return { hari_index, hari: dayNames.value[hari_index] || `${hari_index}`, rows };
     };

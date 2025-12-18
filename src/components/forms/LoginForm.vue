@@ -1,7 +1,7 @@
 <template>
   <Card class="max-w-md mx-auto" variant="elevated">
     <template #headerActions>
-      <img src="/images/logo.svg" class="h-8" alt="Logo">
+      <img :src="logo" class="h-8" alt="Logo">
     </template>
     
     <div class="space-y-6">
@@ -130,6 +130,7 @@ import { ref, reactive } from 'vue'
 import Card from '../ui/Card.vue'
 import Input from '../ui/Input.vue'
 import Button from '../ui/BaseButton.vue'
+import logo from '@/assets/images/logo.svg'
 
 // Props
 const props = defineProps({

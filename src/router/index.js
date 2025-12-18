@@ -17,7 +17,7 @@ const routes = [
   {
     path: '/',
     component: MainLayout,
-    meta: { requiresAuth: true }, // semua child butuh login
+    // meta: { requiresAuth: true }, // semua child butuh login
     children: [
       // {
       //   path: '',
