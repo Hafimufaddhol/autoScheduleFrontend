@@ -76,72 +76,16 @@
             required
           />
           
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi (Mapel)</label>
-            <p class="text-xs text-gray-500 mb-3">Pilih mapel dengan pencarian cepat kemudian klik untuk menambah atau menghapus.</p>
-            <div class="space-y-3">
-              <div class="relative" ref="kompetensiDropdownRef">
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-between gap-3 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  @click.stop.prevent="toggleKompetensiDropdown"
-                >
-                  <span>
-                    {{ selectedKompetensiDetails.length ? `${selectedKompetensiDetails.length} mapel dipilih` : 'Pilih kompetensi mapel' }}
-                  </span>
-                  <i :class="['fa-solid', 'fa-chevron-' + (kompetensiDropdownOpen ? 'up' : 'down'), 'text-xs']"></i>
-                </button>
-                <transition name="fade">
-                  <div
-                    v-if="kompetensiDropdownOpen"
-                    class="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-xl"
-                  >
-                    <div class="p-3 border-b border-gray-100">
-                      <input
-                        v-model="kompetensiSearch"
-                        type="text"
-                        placeholder="Cari mapel..."
-                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500"
-                      />
-                    </div>
-                    <div class="max-h-60 overflow-y-auto">
-                      <button
-                        v-for="mapel in filteredMapels"
-                        :key="mapel.id"
-                        type="button"
-                        class="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-gray-50"
-                        @click.stop.prevent="toggleMapelSelection(mapel.id)"
-                      >
-                        <div>
-                          <p class="font-medium text-gray-900">{{ mapel.nama }}</p>
-                          <p class="text-xs text-gray-500">{{ mapel.kode }}</p>
-                        </div>
-                        <i
-                          v-if="selectedKompetensi.includes(mapel.id)"
-                          class="fa-solid fa-check text-cyan-600"
-                        ></i>
-                      </button>
-                      <p v-if="!filteredMapels.length" class="p-4 text-sm text-gray-500">Mapel tidak ditemukan.</p>
-                    </div>
-                  </div>
-                </transition>
-              </div>
-
-              <div v-if="selectedKompetensiDetails.length" class="flex flex-wrap gap-2">
-                <span
-                  v-for="mapel in selectedKompetensiDetails"
-                  :key="mapel.id"
-                  class="inline-flex items-center gap-2 rounded-full bg-cyan-50 border border-cyan-200 px-3 py-1 text-sm text-cyan-800"
-                >
-                  {{ mapel.nama }} ({{ mapel.kode }})
-                  <button type="button" class="text-cyan-600 hover:text-cyan-800" @click="removeKompetensi(mapel.id)">
-                    <i class="fa-solid fa-xmark text-xs"></i>
-                  </button>
-                </span>
-              </div>
-              <p v-else class="text-sm text-gray-400">Belum ada mapel dipilih.</p>
-            </div>
-          </div>
+          <ReferenceList
+            v-model="selectedKompetensi"
+            type="mapel"
+            :multiple="true"
+            :showBadges="true"
+            label="Kompetensi (Mapel)"
+            helperText="Pilih mapel dengan pencarian cepat kemudian klik untuk menambah atau menghapus."
+            placeholder="Pilih kompetensi mapel"
+            noSelectionText="Belum ada mapel dipilih."
+          />
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Hari Tidak Masuk</label>
@@ -183,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue'
-import { Alert, Badge, Input, Modal, SearchBar } from '@/components/ui'
+import { Alert, Badge, Input, Modal, SearchBar, ReferenceList } from '@/components/ui'
 import { PageHeader } from '@/components'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import MyTable from '@/components/ui/MyTable.vue'
@@ -219,9 +163,6 @@ const {
   refresh
 } = useRemoteTable((params) => guruRepository.getAll(params), )
 const availableMapels = ref([])
-const kompetensiDropdownOpen = ref(false)
-const kompetensiDropdownRef = ref(null)
-const kompetensiSearch = ref('')
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -243,25 +184,6 @@ const mapelNamaMap = computed(() => {
     map[mapel.id] = mapel.nama || mapel.kode || mapel.id
   })
   return map
-})
-
-const filteredMapels = computed(() => {
-  if (!kompetensiSearch.value) {
-    return availableMapels.value
-  }
-
-  const keyword = kompetensiSearch.value.toLowerCase()
-  return availableMapels.value.filter((mapel) => {
-    const nama = mapel.nama?.toLowerCase() || ''
-    const kode = mapel.kode?.toLowerCase() || ''
-    return nama.includes(keyword) || kode.includes(keyword)
-  })
-})
-
-const selectedKompetensiDetails = computed(() => {
-  return selectedKompetensi.value
-    .map((id) => availableMapels.value.find((mapel) => mapel.id === id))
-    .filter(Boolean)
 })
 
 const hariOptions = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -298,37 +220,6 @@ const fetchMapels = async () => {
     availableMapels.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error('Gagal memuat mapel:', error)
-  }
-}
-
-const toggleKompetensiDropdown = () => {
-  kompetensiDropdownOpen.value = !kompetensiDropdownOpen.value
-  if (kompetensiDropdownOpen.value) {
-    kompetensiSearch.value = ''
-  }
-}
-
-const closeKompetensiDropdown = () => {
-  kompetensiDropdownOpen.value = false
-}
-
-const toggleMapelSelection = (mapelId) => {
-  if (!mapelId) return
-  if (selectedKompetensi.value.includes(mapelId)) {
-    selectedKompetensi.value = selectedKompetensi.value.filter((id) => id !== mapelId)
-  } else {
-    selectedKompetensi.value = [...selectedKompetensi.value, mapelId]
-  }
-}
-
-const removeKompetensi = (mapelId) => {
-  selectedKompetensi.value = selectedKompetensi.value.filter((id) => id !== mapelId)
-}
-
-const handleKompetensiClickOutside = (event) => {
-  if (!kompetensiDropdownRef.value) return
-  if (!kompetensiDropdownRef.value.contains(event.target)) {
-    closeKompetensiDropdown()
   }
 }
 
@@ -412,13 +303,11 @@ const handleDelete = async (id) => {
 onMounted(() => {
   refresh()
   fetchMapels()
-  document.addEventListener('click', handleKompetensiClickOutside)
 })
 
 onBeforeUnmount(() => {
   if (searchDebounce.value) {
     clearTimeout(searchDebounce.value)
   }
-  document.removeEventListener('click', handleKompetensiClickOutside)
 })
 </script>

@@ -653,21 +653,19 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Guru (untuk semua {{ editForm.size }} JP)</label>
-                <select v-model="editForm.guru_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500">
-                  <option value="">-- Pilih Guru --</option>
-                  <option v-for="guru in guruList" :key="guru.id" :value="guru.id">
-                    {{ guru.nama || guru.kode || guru.id }}
-                  </option>
-                </select>
+                <ReferenceList
+                  v-model="editForm.guru_id"
+                  type="guru"
+                  placeholder="-- Pilih Guru --"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran (untuk semua {{ editForm.size }} JP)</label>
-                <select v-model="editForm.mapel_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500">
-                  <option value="">-- Pilih Mapel --</option>
-                  <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.id">
-                    {{ mapel.nama || mapel.kode || mapel.id }}
-                  </option>
-                </select>
+                <ReferenceList
+                  v-model="editForm.mapel_id"
+                  type="mapel"
+                  placeholder="-- Pilih Mapel --"
+                />
               </div>
             </div>
           </div>
@@ -682,21 +680,19 @@
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-medium text-gray-600 mb-1">Guru</label>
-                  <select v-model="slotItem.new_guru_id" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-cyan-500 focus:ring-cyan-500">
-                    <option value="">-- Tidak diubah --</option>
-                    <option v-for="guru in guruList" :key="guru.id" :value="guru.id">
-                      {{ guru.nama || guru.kode || guru.id }}
-                    </option>
-                  </select>
+                  <ReferenceList
+                    v-model="slotItem.new_guru_id"
+                    type="guru"
+                    placeholder="-- Tidak diubah --"
+                  />
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-600 mb-1">Mapel</label>
-                  <select v-model="slotItem.new_mapel_id" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-cyan-500 focus:ring-cyan-500">
-                    <option value="">-- Tidak diubah --</option>
-                    <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.id">
-                      {{ mapel.nama || mapel.kode || mapel.id }}
-                    </option>
-                  </select>
+                  <ReferenceList
+                    v-model="slotItem.new_mapel_id"
+                    type="mapel"
+                    placeholder="-- Tidak diubah --"
+                  />
                 </div>
               </div>
               <div class="mt-2 text-xs text-gray-500">
@@ -736,6 +732,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Badge from '@/components/ui/Badge.vue';
 import Alert from '@/components/ui/Alert.vue';
+import ReferenceList from '@/components/ui/ReferenceList.vue';
 import jadwalRepository from '@/repositories/jadwalRepository';
 import guruRepository from '@/repositories/guruRepository';
 import mapelRepository from '@/repositories/mapelRepository';
@@ -746,7 +743,8 @@ export default {
   name: 'JadwalDetailView',
   components: {
     Badge,
-    Alert
+    Alert,
+    ReferenceList
   },
   setup() {
     const route = useRoute();
@@ -911,40 +909,61 @@ export default {
       }
     };
 
-    // Aggregate slot items to blocks
+    // Aggregate slot items to blocks - groups consecutive slots with same guru/mapel
     const aggregateSlotsToBlocks = (slotItems) => {
-      const byBlock = new Map();
-      for (const it of slotItems) {
-        const key = it.block_ref || `${it.guru_id}_${it.mapel_id}_${it.kelas_id}_${it.hari_index}`;
-        if (!byBlock.has(key)) byBlock.set(key, []);
-        byBlock.get(key).push(it);
-      }
+      // Sort by kelas, then hari, then slot
+      const sorted = [...slotItems].sort((a, b) => {
+        if (a.kelas_id !== b.kelas_id) return String(a.kelas_id).localeCompare(String(b.kelas_id));
+        if (a.hari_index !== b.hari_index) return (a.hari_index || 0) - (b.hari_index || 0);
+        return (a.slot || 0) - (b.slot || 0);
+      });
+
       const blocks = [];
-      for (const [bref, arr] of byBlock.entries()) {
-        if (!arr.length) continue;
-        arr.sort((a, b) => (a.slot || 0) - (b.slot || 0));
-        const first = arr[0];
-        const slots = arr.map(x => x.slot).filter(s => typeof s === 'number');
-        const start = slots.length ? slots[0] : null;
-        const size = slots.length;
-        const hari_index = first.hari_index;
-        const hari = (hari_index != null && dayNames.value[hari_index]) ? dayNames.value[hari_index] : `${hari_index}`;
-        blocks.push({
-          block_id: bref,
-          guru_id: first.guru_id,
-          guru_nama: guruMap.value[first.guru_id] || first.guru_id,
-          mapel_id: first.mapel_id,
-          mapel_nama: mapelMap.value[first.mapel_id] || first.mapel_id,
-          kelas_id: first.kelas_id,
-          kelas_nama: kelasMap.value[first.kelas_id] || first.kelas_id,
-          hari_index,
-          hari,
-          start,
-          size,
-          slots,
-          slotItems: arr,  // Include raw items for per-slot editing
-        });
+      let currentBlock = null;
+
+      for (const it of sorted) {
+        const combo = `${it.guru_id}_${it.mapel_id}_${it.kelas_id}_${it.hari_index}`;
+        
+        // Check if this slot can be merged with current block
+        const canMerge = currentBlock && 
+          currentBlock.combo === combo &&
+          it.slot === currentBlock.lastSlot + 1;
+
+        if (canMerge) {
+          // Add to current block
+          currentBlock.slotItems.push(it);
+          currentBlock.slots.push(it.slot);
+          currentBlock.lastSlot = it.slot;
+          currentBlock.size++;
+        } else {
+          // Start new block
+          const hari_index = it.hari_index;
+          const hari = (hari_index != null && dayNames.value[hari_index]) ? dayNames.value[hari_index] : `${hari_index}`;
+          
+          currentBlock = {
+            block_id: it.block_ref || `${combo}_${it.slot}`,
+            combo,
+            guru_id: it.guru_id,
+            guru_nama: guruMap.value[it.guru_id] || it.guru_id,
+            mapel_id: it.mapel_id,
+            mapel_nama: mapelMap.value[it.mapel_id] || it.mapel_id,
+            kelas_id: it.kelas_id,
+            kelas_nama: kelasMap.value[it.kelas_id] || it.kelas_id,
+            hari_index,
+            hari,
+            start: it.slot,
+            size: 1,
+            slots: [it.slot],
+            slotItems: [it],
+            lastSlot: it.slot
+          };
+          blocks.push(currentBlock);
+        }
       }
+
+      // Remove temporary fields
+      blocks.forEach(b => delete b.lastSlot && delete b.combo);
+      
       return blocks;
     };
 

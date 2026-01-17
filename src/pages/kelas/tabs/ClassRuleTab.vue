@@ -99,12 +99,13 @@
                 placeholder="Slot ke-"
                 class="w-24 rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500"
               />
-              <select v-model="locked.mapel_id" class="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500">
-                <option value="">Pilih Mapel</option>
-                <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.kode">
-                  {{ mapel.nama }} ({{ mapel.kode }})
-                </option>
-              </select>
+              <ReferenceList
+                v-model="locked.mapel_id"
+                type="mapel"
+                valueKey="kode"
+                placeholder="Pilih Mapel"
+                class="flex-1"
+              />
               <button type="button" class="text-red-600 hover:text-red-800" @click="removeLockedSlot(index)">
                 <i class="fa-solid fa-trash"></i>
               </button>
@@ -128,10 +129,9 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { Card, Alert } from '@/components/ui'
+import { Card, Alert, ReferenceList } from '@/components/ui'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import kelasRulesRepository from '@/repositories/kelasRulesRepository'
-import mapelRepository from '@/repositories/mapelRepository'
 import kelasRepository from '@/repositories/kelasRepository'
 
 const props = defineProps({
@@ -141,7 +141,6 @@ const props = defineProps({
 
 const emit = defineEmits(['notify'])
 
-const mapelList = ref([])
 const alert = ref({ show: false, type: 'success', message: '' })
 const saving = ref(false)
 const form = ref({
@@ -169,15 +168,6 @@ const showAlert = (type, message) => {
   setTimeout(() => {
     alert.value.show = false
   }, 3500)
-}
-
-const fetchMapels = async () => {
-  try {
-    const response = await mapelRepository.getAll({ pageSize: 1000 })
-    mapelList.value = Array.isArray(response?.data) ? response.data : []
-  } catch (error) {
-    console.error('Gagal memuat mapel', error)
-  }
 }
 
 const fetchKelasOptions = async () => {
@@ -261,7 +251,6 @@ const handleCopySlot = async () => {
 }
 
 onMounted(() => {
-  fetchMapels()
   fetchKelasOptions()
 })
 </script>
