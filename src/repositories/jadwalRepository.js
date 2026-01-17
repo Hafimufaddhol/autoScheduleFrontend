@@ -58,6 +58,11 @@ const jadwalRepository = {
   // Trigger create/generate jadwal (future implementation)
   create(periode) {
     return apiClient.post('/jadwal/create', { periode })
+  },
+
+  // Update a single schedule item
+  updateItem(periode, itemId, data) {
+    return apiClient.put(`/jadwal/${periode}/items/${itemId}`, data).then(r => r.data)
   }
 }
 

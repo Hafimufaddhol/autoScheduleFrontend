@@ -328,10 +328,19 @@
                     <template v-else>
                       <td class="border px-2 py-1 text-center text-sm bg-gray-50 font-semibold">{{ row.slot }}</td>
                       <template v-for="cell in row.cells" :key="cell.key">
-                        <td v-if="cell.show" :rowspan="cell.rowspan" class="border align-top p-2 text-xs">
+                        <td 
+                          v-if="cell.show" 
+                          :rowspan="cell.rowspan" 
+                          class="border align-top p-2 text-xs"
+                          :class="{ 'cursor-pointer hover:bg-cyan-50': cell.block }"
+                          @click="cell.block ? openEditModal(cell.block) : null"
+                        >
                           <div v-if="cell.text" class="space-y-1">
                             <div class="font-semibold text-gray-900">{{ cell.text.mapel }}</div>
                             <div class="text-gray-600">{{ cell.text.guru }}</div>
+                            <div class="text-xs text-cyan-600 opacity-0 hover:opacity-100 transition-opacity">
+                              <i class="fas fa-edit"></i> Edit
+                            </div>
                           </div>
                         </td>
                       </template>
@@ -616,6 +625,109 @@
       <i class="fas fa-question-circle text-3xl mb-2"></i>
       <p>Jadwal tidak ditemukan untuk periode ini.</p>
     </div>
+
+    <!-- Edit Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">Edit Jadwal</h3>
+        </div>
+        <div class="p-6 space-y-4 overflow-y-auto flex-1">
+          <!-- Info Block -->
+          <div class="bg-gray-50 rounded-lg p-3 text-sm">
+            <p><strong>Kelas:</strong> {{ editForm.kelas_nama }}</p>
+            <p><strong>Hari:</strong> {{ editForm.hari }}</p>
+            <p><strong>Jam:</strong> {{ editForm.start }} - {{ editForm.start + editForm.size - 1 }} ({{ editForm.size }} JP)</p>
+          </div>
+          
+          <!-- Mode Toggle for Multi-JP -->
+          <div v-if="editForm.size > 1" class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" v-model="editPerSlot" class="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
+              <span class="text-sm text-blue-800">Edit masing-masing jam secara terpisah</span>
+            </label>
+          </div>
+          
+          <!-- Bulk Edit (All slots same) -->
+          <div v-if="!editPerSlot">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Guru (untuk semua {{ editForm.size }} JP)</label>
+                <select v-model="editForm.guru_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500">
+                  <option value="">-- Pilih Guru --</option>
+                  <option v-for="guru in guruList" :key="guru.id" :value="guru.id">
+                    {{ guru.nama || guru.kode || guru.id }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran (untuk semua {{ editForm.size }} JP)</label>
+                <select v-model="editForm.mapel_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500">
+                  <option value="">-- Pilih Mapel --</option>
+                  <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.id">
+                    {{ mapel.nama || mapel.kode || mapel.id }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Per-Slot Edit -->
+          <div v-else class="space-y-4">
+            <div v-for="(slotItem, idx) in editForm.slotItems" :key="slotItem.id" class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold text-gray-900">Jam ke-{{ slotItem.slot }}</span>
+                <span class="text-xs text-gray-500">ID: {{ slotItem.id }}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Guru</label>
+                  <select v-model="slotItem.new_guru_id" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-cyan-500 focus:ring-cyan-500">
+                    <option value="">-- Tidak diubah --</option>
+                    <option v-for="guru in guruList" :key="guru.id" :value="guru.id">
+                      {{ guru.nama || guru.kode || guru.id }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Mapel</label>
+                  <select v-model="slotItem.new_mapel_id" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-cyan-500 focus:ring-cyan-500">
+                    <option value="">-- Tidak diubah --</option>
+                    <option v-for="mapel in mapelList" :key="mapel.id" :value="mapel.id">
+                      {{ mapel.nama || mapel.kode || mapel.id }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-gray-500">
+                Saat ini: {{ guruMap[slotItem.guru_id] || slotItem.guru_id }} - {{ mapelMap[slotItem.mapel_id] || slotItem.mapel_id }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Error Message -->
+          <div v-if="editError" class="text-red-600 text-sm">
+            {{ editError }}
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+          <button 
+            @click="closeEditModal" 
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Batal
+          </button>
+          <button 
+            @click="saveEdit" 
+            :disabled="savingEdit"
+            class="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 disabled:opacity-50"
+          >
+            <i v-if="savingEdit" class="fas fa-spinner fa-spin mr-2"></i>
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -678,6 +790,23 @@ export default {
     const mapelMap = ref({});
     const kelasMap = ref({});
     const breakMarkers = ref([]);
+    const mapelList = ref([]);
+
+    // Edit modal states
+    const showEditModal = ref(false);
+    const editForm = ref({
+      item_id: '',
+      kelas_nama: '',
+      hari: '',
+      start: null,
+      size: 0,
+      guru_id: '',
+      mapel_id: '',
+      slotItems: []  // Array of individual slot items for per-slot edit
+    });
+    const editError = ref('');
+    const savingEdit = ref(false);
+    const editPerSlot = ref(false);  // Toggle for per-slot edit mode
 
     // Load konfigurasi for day names and break markers
     const loadKonfigurasi = async () => {
@@ -742,8 +871,9 @@ export default {
           guruMap.value[g.id] = g.nama || g.kode || g.id; 
         });
         
-        // Mapel map
+        // Mapel list and map
         const mapelArr = mapelData?.data ?? mapelData ?? [];
+        mapelList.value = mapelArr;
         mapelMap.value = {};
         mapelArr.forEach(m => { 
           mapelMap.value[m.id] = m.nama || m.kode || m.id; 
@@ -812,6 +942,7 @@ export default {
           start,
           size,
           slots,
+          slotItems: arr,  // Include raw items for per-slot editing
         });
       }
       return blocks;
@@ -1014,11 +1145,12 @@ export default {
             show: true,
             rowspan: segSize,
             key: baseKey,
-            text: { mapel: b.mapel_nama || b.mapel_id, guru: b.guru_nama || b.guru_id }
+            text: { mapel: b.mapel_nama || b.mapel_id, guru: b.guru_nama || b.guru_id },
+            block: b  // Include block data for edit modal
           };
           for (let i = 1; i < segSize; i++) {
             const sVal = segmentSlots[i];
-            cellMap.get(k)[sVal] = { show: false, rowspan: 0, key: `${baseKey}_${i}`, text: null };
+            cellMap.get(k)[sVal] = { show: false, rowspan: 0, key: `${baseKey}_${i}`, text: null, block: null };
           }
         });
       }
@@ -1237,6 +1369,110 @@ export default {
       router.push({ name: 'Jadwal' });
     };
 
+    // Edit modal functions
+    const openEditModal = (block) => {
+      // Prepare slot items with edit fields
+      const slotItems = (block.slotItems || []).map(item => ({
+        ...item,
+        new_guru_id: '',  // Empty means no change
+        new_mapel_id: ''
+      }));
+      
+      editForm.value = {
+        item_id: block.block_id,
+        kelas_nama: block.kelas_nama || block.kelas_id,
+        hari: block.hari,
+        start: block.start,
+        size: block.size,
+        guru_id: block.guru_id || '',
+        mapel_id: block.mapel_id || '',
+        slotItems: slotItems
+      };
+      editPerSlot.value = false;
+      editError.value = '';
+      showEditModal.value = true;
+    };
+
+    const closeEditModal = () => {
+      showEditModal.value = false;
+      editForm.value = { item_id: '', kelas_nama: '', hari: '', start: null, size: 0, guru_id: '', mapel_id: '', slotItems: [] };
+      editError.value = '';
+      editPerSlot.value = false;
+    };
+
+    const saveEdit = async () => {
+      savingEdit.value = true;
+      editError.value = '';
+
+      try {
+        if (editPerSlot.value) {
+          // Per-slot editing: update each slot that has changes
+          const updates = [];
+          for (const slotItem of editForm.value.slotItems) {
+            const updateData = {};
+            if (slotItem.new_guru_id) {
+              updateData.guru_id = slotItem.new_guru_id;
+              updateData.guru_nama = guruMap.value[slotItem.new_guru_id] || slotItem.new_guru_id;
+            }
+            if (slotItem.new_mapel_id) {
+              updateData.mapel_id = slotItem.new_mapel_id;
+              updateData.mapel_nama = mapelMap.value[slotItem.new_mapel_id] || slotItem.new_mapel_id;
+            }
+            if (Object.keys(updateData).length > 0) {
+              updates.push(jadwalRepository.updateItem(periode.value, slotItem.id, updateData));
+            }
+          }
+          
+          if (updates.length === 0) {
+            editError.value = 'Pilih minimal satu perubahan untuk disimpan';
+            savingEdit.value = false;
+            return;
+          }
+          
+          await Promise.all(updates);
+        } else {
+          // Bulk editing: apply same change to all slots in block
+          if (!editForm.value.guru_id && !editForm.value.mapel_id) {
+            editError.value = 'Pilih minimal satu field untuk diubah';
+            savingEdit.value = false;
+            return;
+          }
+          
+          const updateData = {};
+          if (editForm.value.guru_id) {
+            updateData.guru_id = editForm.value.guru_id;
+            updateData.guru_nama = guruMap.value[editForm.value.guru_id] || editForm.value.guru_id;
+          }
+          if (editForm.value.mapel_id) {
+            updateData.mapel_id = editForm.value.mapel_id;
+            updateData.mapel_nama = mapelMap.value[editForm.value.mapel_id] || editForm.value.mapel_id;
+          }
+          
+          // Update all slots in the block
+          const updates = editForm.value.slotItems.map(slotItem => 
+            jadwalRepository.updateItem(periode.value, slotItem.id, updateData)
+          );
+          await Promise.all(updates);
+        }
+        
+        closeEditModal();
+        
+        // Refresh current view
+        if (activeTab.value === 'hari') {
+          await loadHariItems();
+        } else if (activeTab.value === 'kelas' && selectedKelas.value) {
+          await loadKelasItems();
+        } else if (activeTab.value === 'guru' && selectedGuru.value) {
+          await loadGuruItems();
+        }
+      } catch (err) {
+        console.error('Error saving edit:', err);
+        editError.value = err.response?.data?.error || err.message || 'Gagal menyimpan perubahan';
+      } finally {
+        savingEdit.value = false;
+      }
+    };
+
     onMounted(async () => {
       document.addEventListener('click', handleClickOutside);
       await Promise.all([loadKonfigurasi(), loadReferences()]);
@@ -1304,7 +1540,18 @@ export default {
       getGuruName,
       getStatusVariant,
       formatDate,
-      goBack
+      goBack,
+      // Edit modal
+      showEditModal,
+      editForm,
+      editError,
+      savingEdit,
+      editPerSlot,
+      mapelList,
+      guruMap,
+      openEditModal,
+      closeEditModal,
+      saveEdit
     };
   }
 };
