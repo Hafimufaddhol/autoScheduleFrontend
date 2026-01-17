@@ -28,6 +28,28 @@ const jadwalRepository = {
     return apiClient.get(`/jadwal/${periode}`)
   },
 
+  // Get jadwal status only (without items) - for lazy loading
+  getStatus(periode) {
+    return apiClient.get(`/jadwal/${periode}/status`).then(r => r.data)
+  },
+
+  // Get jadwal items with filters - for lazy loading
+  // filterType: 'hari' | 'kelas' | 'guru'
+  // filterValue: hari_index (0-4) for hari, id for kelas/guru
+  getItems(periode, filterType = null, filterValue = null) {
+    let url = `/jadwal/${periode}/items`
+    const params = new URLSearchParams()
+    if (filterType && filterValue !== null && filterValue !== undefined) {
+      params.set('filter_type', filterType)
+      params.set('filter_value', filterValue)
+    }
+    const query = params.toString()
+    if (query) {
+      url += `?${query}`
+    }
+    return apiClient.get(url).then(r => r.data)
+  },
+
   // Delete a jadwal by periode
   delete(periode) {
     return apiClient.delete(`/jadwal/${periode}`)

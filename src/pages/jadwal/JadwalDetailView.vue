@@ -14,22 +14,22 @@
     </div>
 
     <!-- Status Bar -->
-    <div v-if="jadwalData && jadwalData.status" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+    <div v-if="jadwalStatus" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
       <div class="flex items-center gap-4">
         <span class="font-semibold text-gray-700">Status:</span>
         <Badge 
-          :label="jadwalData.status" 
-          :variant="getStatusVariant(jadwalData.status)"
+          :label="jadwalStatus.status" 
+          :variant="getStatusVariant(jadwalStatus.status)"
         />
-        <span v-if="jadwalData.created_at" class="text-gray-500 ml-auto">
+        <span v-if="jadwalStatus.created_at" class="text-gray-500 ml-auto">
           <i class="far fa-clock mr-2"></i>
-          Dibuat: {{ formatDate(jadwalData.created_at) }}
+          Dibuat: {{ formatDate(jadwalStatus.created_at) }}
         </span>
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center py-12">
+    <!-- Loading State (Initial) -->
+    <div v-if="loadingStatus" class="text-center py-12">
       <i class="fas fa-spinner fa-spin text-4xl text-cyan-600"></i>
       <p class="mt-4 text-gray-600">Memuat jadwal...</p>
     </div>
@@ -38,11 +38,22 @@
     <Alert v-else-if="error" type="error" :message="error" @close="error = ''" />
 
     <!-- Tabs -->
-    <div v-else-if="jadwalData?.status === 'ready' && items.length > 0" class="mb-6">
+    <div v-else-if="jadwalStatus?.status === 'ready'" class="mb-6">
       <div class="border-b border-gray-200">
         <nav class="-mb-px flex gap-6">
           <button
-            @click="activeTab = 'kelas'"
+            @click="switchTab('hari')"
+            :class="{
+              'border-cyan-500 text-cyan-600': activeTab === 'hari',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'hari'
+            }"
+            class="py-4 px-1 border-b-2 font-medium text-sm"
+          >
+            <i class="fas fa-calendar-day mr-2"></i>
+            Per Hari
+          </button>
+          <button
+            @click="switchTab('kelas')"
             :class="{
               'border-cyan-500 text-cyan-600': activeTab === 'kelas',
               'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'kelas'
@@ -53,7 +64,7 @@
             Per Kelas
           </button>
           <button
-            @click="activeTab = 'guru'"
+            @click="switchTab('guru')"
             :class="{
               'border-cyan-500 text-cyan-600': activeTab === 'guru',
               'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'guru'
@@ -64,18 +75,7 @@
             Per Guru
           </button>
           <button
-            @click="activeTab = 'grid'"
-            :class="{
-              'border-cyan-500 text-cyan-600': activeTab === 'grid',
-              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'grid'
-            }"
-            class="py-4 px-1 border-b-2 font-medium text-sm"
-          >
-            <i class="fas fa-table mr-2"></i>
-            Grid Mingguan
-          </button>
-          <button
-            @click="activeTab = 'raw'"
+            @click="switchTab('raw')"
             :class="{
               'border-cyan-500 text-cyan-600': activeTab === 'raw',
               'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'raw'
@@ -90,108 +90,53 @@
 
       <!-- Content -->
       <div class="mt-6">
-        <!-- Per Kelas View -->
-        <div v-show="activeTab === 'kelas'" class="space-y-8">
-          <div v-for="kelas in kelasGroups" :key="kelas.id" class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">{{ kelas.nama }}</h2>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hari
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Jam
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mapel
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Guru
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Durasi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="(item, idx) in kelas.items" :key="idx" class="hover:bg-gray-50">
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
-                    <td class="px-4 py-3">{{ item.mapel }}</td>
-                    <td class="px-4 py-3">{{ item.guru }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="mt-4 text-sm text-gray-600">
-              Total JP: <span class="font-semibold">{{ kelas.totalJP }}</span>
+        <!-- Per Hari View -->
+        <div v-show="activeTab === 'hari'">
+          <!-- Day Selector -->
+          <div class="mb-6 flex items-center gap-4">
+            <label class="font-medium text-gray-700">Pilih Hari:</label>
+            <div class="flex gap-2">
+              <button
+                v-for="(day, index) in dayNames"
+                :key="index"
+                @click="selectHari(index)"
+                :class="[
+                  'px-4 py-2 rounded-lg font-medium transition-colors',
+                  selectedHari === index
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                {{ day }}
+              </button>
             </div>
           </div>
-        </div>
 
-        <!-- Per Guru View -->
-        <div v-show="activeTab === 'guru'" class="space-y-8">
-          <div v-for="guru in guruGroups" :key="guru.id" class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">{{ guru.nama }}</h2>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hari
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Jam
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kelas
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mapel
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Durasi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="(item, idx) in guru.items" :key="idx" class="hover:bg-gray-50">
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
-                    <td class="px-4 py-3">{{ item.kelas }}</td>
-                    <td class="px-4 py-3">{{ item.mapel }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="mt-4 text-sm text-gray-600">
-              Total JP: <span class="font-semibold">{{ guru.totalJP }}</span>
-            </div>
+          <!-- Loading Items -->
+          <div v-if="loadingItems" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-cyan-600"></i>
+            <p class="mt-2 text-gray-600">Memuat jadwal hari {{ dayNames[selectedHari] }}...</p>
           </div>
-        </div>
 
-        <!-- Grid Mingguan View -->
-        <div v-show="activeTab === 'grid'" class="space-y-10">
-          <div v-for="day in gridDays" :key="day.hari_index" class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">{{ day.hari }}</h2>
+          <!-- Grid Table -->
+          <div v-else-if="currentItems.length > 0" class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">
+              Jadwal Hari {{ dayNames[selectedHari] }}
+            </h2>
             <div class="overflow-x-auto">
               <table class="min-w-full border-collapse table-fixed">
                 <thead>
                   <tr>
                     <th class="border px-2 py-2 w-16 text-xs uppercase bg-gray-50">Jam ke</th>
-                    <th v-for="k in kelasOrdered" :key="k.id" class="border px-2 py-2 text-xs uppercase bg-gray-50">
+                    <th v-for="k in kelasOrderedForDay" :key="k.id" class="border px-2 py-2 text-xs uppercase bg-gray-50">
                       {{ k.nama }}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in day.rows" :key="row.key || row.slot" :class="row.isBreak ? 'bg-yellow-50' : ''">
+                  <tr v-for="row in gridRows" :key="row.key || row.slot" :class="row.isBreak ? 'bg-yellow-50' : ''">
                     <template v-if="row.isBreak">
-                      <td :colspan="kelasOrdered.length + 1" class="border px-2 py-1 text-center text-xs font-semibold text-yellow-700">
+                      <td :colspan="kelasOrderedForDay.length + 1" class="border px-2 py-1 text-center text-xs font-semibold text-yellow-700">
                         {{ row.label || 'Istirahat' }}
                       </td>
                     </template>
@@ -211,30 +156,277 @@
               </table>
             </div>
           </div>
+
+          <div v-else class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-calendar-times text-3xl mb-2"></i>
+            <p>Tidak ada jadwal untuk hari {{ dayNames[selectedHari] }}.</p>
+          </div>
+        </div>
+
+        <!-- Per Kelas View -->
+        <div v-show="activeTab === 'kelas'">
+          <!-- Kelas Selector (Searchable) -->
+          <div class="mb-6 flex items-center gap-4">
+            <label class="font-medium text-gray-700">Pilih Kelas:</label>
+            <div class="relative min-w-64" ref="kelasDropdownRef">
+              <button
+                type="button"
+                class="inline-flex items-center justify-between gap-3 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                @click.stop.prevent="toggleKelasDropdown"
+              >
+                <span>{{ selectedKelas ? getKelasName(selectedKelas) : 'Pilih Kelas' }}</span>
+                <i :class="['fa-solid', 'fa-chevron-' + (kelasDropdownOpen ? 'up' : 'down'), 'text-xs']"></i>
+              </button>
+              <transition name="fade">
+                <div
+                  v-if="kelasDropdownOpen"
+                  class="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-xl"
+                >
+                  <div class="p-3 border-b border-gray-100">
+                    <input
+                      v-model="kelasSearch"
+                      type="text"
+                      placeholder="Cari kelas..."
+                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500"
+                      @click.stop
+                    />
+                  </div>
+                  <div class="max-h-60 overflow-y-auto">
+                    <button
+                      v-for="kelas in filteredKelasList"
+                      :key="kelas.id"
+                      type="button"
+                      class="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-gray-50"
+                      @click.stop.prevent="selectKelas(kelas.id)"
+                    >
+                      <div>
+                        <p class="font-medium text-gray-900">{{ kelas.nama || kelas.kode || kelas.id }}</p>
+                        <p v-if="kelas.kode && kelas.nama" class="text-xs text-gray-500">{{ kelas.kode }}</p>
+                      </div>
+                      <i
+                        v-if="selectedKelas === kelas.id"
+                        class="fa-solid fa-check text-cyan-600"
+                      ></i>
+                    </button>
+                    <p v-if="!filteredKelasList.length" class="p-4 text-sm text-gray-500">Kelas tidak ditemukan.</p>
+                  </div>
+                </div>
+              </transition>
+            </div>
+            <button
+              v-if="selectedKelas"
+              type="button"
+              class="text-gray-400 hover:text-gray-600"
+              @click="clearKelasSelection"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Loading Items -->
+          <div v-if="loadingItems" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-cyan-600"></i>
+            <p class="mt-2 text-gray-600">Memuat jadwal kelas...</p>
+          </div>
+
+          <!-- Items Table -->
+          <div v-else-if="selectedKelas && currentItems.length > 0" class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">
+              Jadwal Kelas {{ getKelasName(selectedKelas) }}
+              <span class="text-sm font-normal text-gray-500 ml-2">({{ totalJP }} JP)</span>
+            </h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapel</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guru</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="(item, idx) in processedKelasItems" :key="idx" class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
+                    <td class="px-4 py-3">{{ item.mapel }}</td>
+                    <td class="px-4 py-3">{{ item.guru }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div v-else-if="selectedKelas && currentItems.length === 0" class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-school text-3xl mb-2"></i>
+            <p>Tidak ada jadwal untuk kelas ini.</p>
+          </div>
+
+          <div v-else class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-hand-pointer text-3xl mb-2"></i>
+            <p>Silakan pilih kelas untuk melihat jadwal.</p>
+          </div>
+        </div>
+
+        <!-- Per Guru View -->
+        <div v-show="activeTab === 'guru'">
+          <!-- Guru Selector (Searchable) -->
+          <div class="mb-6 flex items-center gap-4">
+            <label class="font-medium text-gray-700">Pilih Guru:</label>
+            <div class="relative min-w-64" ref="guruDropdownRef">
+              <button
+                type="button"
+                class="inline-flex items-center justify-between gap-3 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                @click.stop.prevent="toggleGuruDropdown"
+              >
+                <span>{{ selectedGuru ? getGuruName(selectedGuru) : 'Pilih Guru' }}</span>
+                <i :class="['fa-solid', 'fa-chevron-' + (guruDropdownOpen ? 'up' : 'down'), 'text-xs']"></i>
+              </button>
+              <transition name="fade">
+                <div
+                  v-if="guruDropdownOpen"
+                  class="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-xl"
+                >
+                  <div class="p-3 border-b border-gray-100">
+                    <input
+                      v-model="guruSearch"
+                      type="text"
+                      placeholder="Cari guru..."
+                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:ring-cyan-500"
+                      @click.stop
+                    />
+                  </div>
+                  <div class="max-h-60 overflow-y-auto">
+                    <button
+                      v-for="guru in filteredGuruList"
+                      :key="guru.id"
+                      type="button"
+                      class="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-gray-50"
+                      @click.stop.prevent="selectGuru(guru.id)"
+                    >
+                      <div>
+                        <p class="font-medium text-gray-900">{{ guru.nama || guru.kode || guru.id }}</p>
+                        <p v-if="guru.kode && guru.nama" class="text-xs text-gray-500">{{ guru.kode }}</p>
+                      </div>
+                      <i
+                        v-if="selectedGuru === guru.id"
+                        class="fa-solid fa-check text-cyan-600"
+                      ></i>
+                    </button>
+                    <p v-if="!filteredGuruList.length" class="p-4 text-sm text-gray-500">Guru tidak ditemukan.</p>
+                  </div>
+                </div>
+              </transition>
+            </div>
+            <button
+              v-if="selectedGuru"
+              type="button"
+              class="text-gray-400 hover:text-gray-600"
+              @click="clearGuruSelection"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Loading Items -->
+          <div v-if="loadingItems" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-cyan-600"></i>
+            <p class="mt-2 text-gray-600">Memuat jadwal guru...</p>
+          </div>
+
+          <!-- Items Table -->
+          <div v-else-if="selectedGuru && currentItems.length > 0" class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">
+              Jadwal Guru {{ getGuruName(selectedGuru) }}
+              <span class="text-sm font-normal text-gray-500 ml-2">({{ totalJP }} JP)</span>
+            </h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapel</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="(item, idx) in processedGuruItems" :key="idx" class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
+                    <td class="px-4 py-3">{{ item.kelas }}</td>
+                    <td class="px-4 py-3">{{ item.mapel }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div v-else-if="selectedGuru && currentItems.length === 0" class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-chalkboard-teacher text-3xl mb-2"></i>
+            <p>Tidak ada jadwal untuk guru ini.</p>
+          </div>
+
+          <div v-else class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-hand-pointer text-3xl mb-2"></i>
+            <p>Silakan pilih guru untuk melihat jadwal.</p>
+          </div>
         </div>
 
         <!-- Raw Data View -->
-        <div v-show="activeTab === 'raw'" class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4 text-gray-900">Data Mentah (JSON)</h2>
-          <pre class="bg-gray-50 p-4 rounded overflow-x-auto text-sm">{{ JSON.stringify(items, null, 2) }}</pre>
+        <div v-show="activeTab === 'raw'">
+          <!-- Load All Button -->
+          <div v-if="!rawDataLoaded" class="mb-4">
+            <button
+              @click="loadAllRawData"
+              :disabled="loadingItems"
+              class="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 disabled:opacity-50"
+            >
+              <i v-if="loadingItems" class="fas fa-spinner fa-spin mr-2"></i>
+              <i v-else class="fas fa-download mr-2"></i>
+              Muat Semua Data
+            </button>
+          </div>
+
+          <div v-if="loadingItems && activeTab === 'raw'" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-cyan-600"></i>
+            <p class="mt-2 text-gray-600">Memuat semua data jadwal...</p>
+          </div>
+
+          <div v-else-if="rawDataLoaded && rawItems.length > 0" class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-900">
+              Data Mentah (JSON) 
+              <span class="text-sm font-normal text-gray-500">- {{ rawItems.length }} items</span>
+            </h2>
+            <pre class="bg-gray-50 p-4 rounded overflow-x-auto text-sm max-h-96 overflow-y-auto">{{ JSON.stringify(rawItems, null, 2) }}</pre>
+          </div>
+
+          <div v-else-if="rawDataLoaded && rawItems.length === 0" class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-database text-3xl mb-2"></i>
+            <p>Tidak ada data jadwal.</p>
+          </div>
+
+          <div v-else class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-8 rounded text-center">
+            <i class="fas fa-info-circle text-3xl mb-2"></i>
+            <p>Klik tombol "Muat Semua Data" untuk melihat data mentah.</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Empty/Status States -->
-    <div v-else-if="jadwalData?.status === 'ready' && items.length === 0" 
-         class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-8 rounded text-center">
-      <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
-      <p>Jadwal belum memiliki item.</p>
-    </div>
-
-    <div v-else-if="jadwalData?.status === 'pending'" 
+    <!-- Pending State -->
+    <div v-else-if="jadwalStatus?.status === 'pending'" 
          class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-8 rounded text-center">
       <i class="fas fa-clock text-3xl mb-2"></i>
       <p>Jadwal sedang diproses. Silakan refresh halaman setelah beberapa saat.</p>
     </div>
 
-    <div v-else-if="jadwalData?.status === 'not_found'" 
+    <!-- Not Found State -->
+    <div v-else-if="jadwalStatus?.status === 'not_found'" 
          class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-8 rounded text-center">
       <i class="fas fa-question-circle text-3xl mb-2"></i>
       <p>Jadwal tidak ditemukan untuk periode ini.</p>
@@ -243,7 +435,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Badge from '@/components/ui/Badge.vue';
 import Alert from '@/components/ui/Alert.vue';
@@ -263,19 +455,46 @@ export default {
     const route = useRoute();
     const router = useRouter();
     const periode = ref(route.params.periode);
-    const loading = ref(false);
+    
+    // Loading states
+    const loadingStatus = ref(false);
+    const loadingItems = ref(false);
     const error = ref('');
-    const jadwalData = ref(null);
-    const items = ref([]);
-    const activeTab = ref('kelas');
+    
+    // Status data
+    const jadwalStatus = ref(null);
+    
+    // Current items for display (lazy loaded)
+    const currentItems = ref([]);
+    const rawItems = ref([]);
+    const rawDataLoaded = ref(false);
+    
+    // Tab state
+    const activeTab = ref('hari');
+    
+    // Selection states
+    const selectedHari = ref(0); // Default Senin
+    const selectedKelas = ref('');
+    const selectedGuru = ref('');
+    
+    // Searchable dropdown states
+    const kelasDropdownOpen = ref(false);
+    const kelasDropdownRef = ref(null);
+    const kelasSearch = ref('');
+    const guruDropdownOpen = ref(false);
+    const guruDropdownRef = ref(null);
+    const guruSearch = ref('');
+    
+    // Reference lists
+    const dayNames = ref(["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]);
+    const guruList = ref([]);
+    const kelasList = ref([]);
+    const guruMap = ref({});
+    const mapelMap = ref({});
+    const kelasMap = ref({});
+    const breakMarkers = ref([]);
 
-    // Master data maps
-    const dayNames = ref(["Senin","Selasa","Rabu","Kamis","Jumat"]);
-  const guruMap = ref({});
-  const mapelMap = ref({});
-  const kelasMap = ref({});
-  const breakMarkers = ref([]);
-
+    // Load konfigurasi for day names and break markers
     const loadKonfigurasi = async () => {
       try {
         const response = await konfigurasiRepository.get();
@@ -283,6 +502,7 @@ export default {
         if (Array.isArray(konf.hari) && konf.hari.length) {
           dayNames.value = konf.hari;
         }
+        // Parse break markers
         const rawBreaks = Array.isArray(konf.jam_istirahat) ? konf.jam_istirahat : [];
         if (rawBreaks.length) {
           const parsed = rawBreaks
@@ -320,34 +540,63 @@ export default {
       } catch (_) { /* ignore */ }
     };
 
-    const loadMasters = async () => {
+    // Load reference lists
+    const loadReferences = async () => {
       try {
         const [guruData, mapelData, kelasData] = await Promise.all([
-          guruRepository.getAll({ pageSize: 1000 }),
-          mapelRepository.getAll({ pageSize: 1000 }),
-          kelasRepository.getAll({ pageSize: 1000 }),
+          guruRepository.getReference(),
+          mapelRepository.getReference(),
+          kelasRepository.getReference(),
         ]);
         
+        // Guru list and map
+        const guruArr = guruData?.data ?? guruData ?? [];
+        guruList.value = guruArr;
         guruMap.value = {};
-        const guruList = guruData?.data ?? guruData ?? [];
-        guruList.forEach(g => { 
+        guruArr.forEach(g => { 
           guruMap.value[g.id] = g.nama || g.kode || g.id; 
         });
         
+        // Mapel map
+        const mapelArr = mapelData?.data ?? mapelData ?? [];
         mapelMap.value = {};
-        const mapelList = mapelData?.data ?? mapelData ?? [];
-        mapelList.forEach(m => { 
+        mapelArr.forEach(m => { 
           mapelMap.value[m.id] = m.nama || m.kode || m.id; 
         });
         
+        // Kelas list and map
+        const kelasArr = kelasData?.data ?? kelasData ?? [];
+        kelasList.value = kelasArr;
         kelasMap.value = {};
-        const kelasList = kelasData?.data ?? kelasData ?? [];
-        kelasList.forEach(k => { 
+        kelasArr.forEach(k => { 
           kelasMap.value[k.id] = k.nama || k.kode || k.id; 
         });
       } catch (_) { /* keep ids if fails */ }
     };
 
+    // Load jadwal status
+    const loadJadwalStatus = async () => {
+      if (!periode.value) return;
+      loadingStatus.value = true;
+      error.value = '';
+      
+      try {
+        const response = await jadwalRepository.getStatus(periode.value);
+        jadwalStatus.value = response;
+        
+        // If ready, load initial data for first tab
+        if (response?.status === 'ready') {
+          await loadHariItems();
+        }
+      } catch (err) {
+        console.error('Error loading jadwal status:', err);
+        error.value = err.response?.data?.error || err.message || 'Terjadi kesalahan';
+      } finally {
+        loadingStatus.value = false;
+      }
+    };
+
+    // Aggregate slot items to blocks
     const aggregateSlotsToBlocks = (slotItems) => {
       const byBlock = new Map();
       for (const it of slotItems) {
@@ -358,7 +607,7 @@ export default {
       const blocks = [];
       for (const [bref, arr] of byBlock.entries()) {
         if (!arr.length) continue;
-        arr.sort((a,b) => (a.slot||0) - (b.slot||0));
+        arr.sort((a, b) => (a.slot || 0) - (b.slot || 0));
         const first = arr[0];
         const slots = arr.map(x => x.slot).filter(s => typeof s === 'number');
         const start = slots.length ? slots[0] : null;
@@ -380,144 +629,141 @@ export default {
           slots,
         });
       }
-      blocks.sort((a,b) => {
-        if (a.kelas_nama !== b.kelas_nama) return a.kelas_nama.localeCompare(b.kelas_nama);
-        if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
-        return (a.start||0) - (b.start||0);
-      });
       return blocks;
     };
 
-    const loadJadwal = async () => {
-      if (!periode.value) return;
-      loading.value = true;
-      error.value = '';
-      jadwalData.value = null;
-      items.value = [];
-
+    // Load items by hari
+    const loadHariItems = async () => {
+      loadingItems.value = true;
+      currentItems.value = [];
+      
       try {
-        await Promise.all([loadKonfigurasi(), loadMasters()]);
-
-        const response = await jadwalRepository.getById(periode.value);
-        const payload = response?.data?.data ?? response?.data;
-        if (payload) {
-          if (Array.isArray(payload)) {
-            jadwalData.value = { status: 'ready', items: payload };
-          } else {
-            jadwalData.value = payload;
-          }
-          if (jadwalData.value.status === 'ready' && Array.isArray(jadwalData.value.items)) {
-            const slotItems = jadwalData.value.items;
-            const looksAggregated = slotItems.length > 0 && Array.isArray(slotItems[0]?.slots);
-            if (looksAggregated) {
-              items.value = slotItems.map(b => ({
-                block_id: b.block_id,
-                guru_id: b.guru_id,
-                guru_nama: guruMap.value[b.guru_id] || b.guru_id,
-                mapel_id: b.mapel_id,
-                mapel_nama: mapelMap.value[b.mapel_id] || b.mapel_id,
-                kelas_id: b.kelas_id,
-                kelas_nama: kelasMap.value[b.kelas_id] || b.kelas_id,
-                hari_index: b.hari_index,
-                hari: dayNames.value[b.hari_index] || `${b.hari_index}`,
-                start: b.start,
-                size: Array.isArray(b.slots) ? b.slots.length : (b.durasi || 0),
-                slots: Array.isArray(b.slots) ? b.slots : [],
-              }));
-            } else {
-              items.value = aggregateSlotsToBlocks(slotItems);
-            }
-          }
-        } else {
-          error.value = 'Format response tidak valid';
-        }
+        const response = await jadwalRepository.getItems(periode.value, 'hari', selectedHari.value);
+        const slotItems = response?.items ?? [];
+        currentItems.value = aggregateSlotsToBlocks(slotItems);
       } catch (err) {
-        console.error('Error loading jadwal:', err);
-        error.value = err.response?.data?.error || err.message || 'Terjadi kesalahan';
+        console.error('Error loading hari items:', err);
+        error.value = 'Gagal memuat jadwal hari';
       } finally {
-        loading.value = false;
+        loadingItems.value = false;
       }
     };
 
-    // Group by kelas
-    const kelasGroups = computed(() => {
-      const groups = {};
-      items.value.forEach(item => {
-        if (!groups[item.kelas_id]) {
-          groups[item.kelas_id] = {
-            id: item.kelas_id,
-            nama: item.kelas_nama || item.kelas_id,
-            items: [],
-            totalJP: 0
-          };
-        }
-        groups[item.kelas_id].items.push({
-          hari: item.hari,
-          start: item.start,
-          mapel: item.mapel_nama || item.mapel_id,
-          guru: item.guru_nama || item.guru_id,
-          size: item.size
-        });
-        groups[item.kelas_id].totalJP += item.size || 0;
-      });
+    // Load items by kelas
+    const loadKelasItems = async () => {
+      if (!selectedKelas.value) {
+        currentItems.value = [];
+        return;
+      }
+      
+      loadingItems.value = true;
+      currentItems.value = [];
+      
+      try {
+        const response = await jadwalRepository.getItems(periode.value, 'kelas', selectedKelas.value);
+        const slotItems = response?.items ?? [];
+        currentItems.value = aggregateSlotsToBlocks(slotItems);
+      } catch (err) {
+        console.error('Error loading kelas items:', err);
+        error.value = 'Gagal memuat jadwal kelas';
+      } finally {
+        loadingItems.value = false;
+      }
+    };
 
-      Object.values(groups).forEach(group => {
-        group.items.sort((a, b) => {
-          if (a.hari !== b.hari) return a.hari.localeCompare(b.hari);
-          return a.start - b.start;
-        });
-      });
+    // Load items by guru
+    const loadGuruItems = async () => {
+      if (!selectedGuru.value) {
+        currentItems.value = [];
+        return;
+      }
+      
+      loadingItems.value = true;
+      currentItems.value = [];
+      
+      try {
+        const response = await jadwalRepository.getItems(periode.value, 'guru', selectedGuru.value);
+        const slotItems = response?.items ?? [];
+        currentItems.value = aggregateSlotsToBlocks(slotItems);
+      } catch (err) {
+        console.error('Error loading guru items:', err);
+        error.value = 'Gagal memuat jadwal guru';
+      } finally {
+        loadingItems.value = false;
+      }
+    };
 
-      return Object.values(groups).sort((a, b) => a.nama.localeCompare(b.nama));
-    });
+    // Load all raw data
+    const loadAllRawData = async () => {
+      loadingItems.value = true;
+      
+      try {
+        const response = await jadwalRepository.getItems(periode.value);
+        rawItems.value = response?.items ?? [];
+        rawDataLoaded.value = true;
+      } catch (err) {
+        console.error('Error loading raw data:', err);
+        error.value = 'Gagal memuat data mentah';
+      } finally {
+        loadingItems.value = false;
+      }
+    };
 
-    // Group by guru
-    const guruGroups = computed(() => {
-      const groups = {};
-      items.value.forEach(item => {
-        if (!groups[item.guru_id]) {
-          groups[item.guru_id] = {
-            id: item.guru_id,
-            nama: item.guru_nama || item.guru_id,
-            items: [],
-            totalJP: 0
-          };
-        }
-        groups[item.guru_id].items.push({
-          hari: item.hari,
+    // Switch tab handler
+    const switchTab = async (tab) => {
+      activeTab.value = tab;
+      currentItems.value = [];
+      
+      if (tab === 'hari') {
+        await loadHariItems();
+      } else if (tab === 'kelas' && selectedKelas.value) {
+        await loadKelasItems();
+      } else if (tab === 'guru' && selectedGuru.value) {
+        await loadGuruItems();
+      }
+      // raw tab loads on demand
+    };
+
+    // Select hari handler
+    const selectHari = async (index) => {
+      selectedHari.value = index;
+      await loadHariItems();
+    };
+
+    // Processed items for each view
+    const processedHariItems = computed(() => {
+      return currentItems.value
+        .slice()
+        .sort((a, b) => {
+          if (a.kelas_nama !== b.kelas_nama) return a.kelas_nama.localeCompare(b.kelas_nama);
+          return (a.start || 0) - (b.start || 0);
+        })
+        .map(item => ({
           start: item.start,
           kelas: item.kelas_nama || item.kelas_id,
           mapel: item.mapel_nama || item.mapel_id,
+          guru: item.guru_nama || item.guru_id,
           size: item.size
-        });
-        groups[item.guru_id].totalJP += item.size || 0;
-      });
-
-      Object.values(groups).forEach(group => {
-        group.items.sort((a, b) => {
-          if (a.hari !== b.hari) return a.hari.localeCompare(b.hari);
-          return a.start - b.start;
-        });
-      });
-
-      return Object.values(groups).sort((a, b) => a.nama.localeCompare(b.nama));
+        }));
     });
 
-    // Grid: kelas columns
-    const kelasOrdered = computed(() => {
+    // Kelas columns for grid (ordered)
+    const kelasOrderedForDay = computed(() => {
       const seen = new Map();
-      items.value.forEach(it => {
+      currentItems.value.forEach(it => {
         if (!seen.has(it.kelas_id)) {
           seen.set(it.kelas_id, { id: it.kelas_id, nama: it.kelas_nama || it.kelas_id });
         }
       });
-      return Array.from(seen.values()).sort((a,b) => a.nama.localeCompare(b.nama));
+      return Array.from(seen.values()).sort((a, b) => a.nama.localeCompare(b.nama));
     });
 
-    const buildDayGrid = (hari_index) => {
-      const kelasCols = kelasOrdered.value;
-      if (kelasCols.length === 0) return { hari_index, hari: dayNames.value[hari_index] || `${hari_index}`, rows: [] };
-      const blocks = items.value.filter(it => it.hari_index === hari_index);
+    // Build grid rows for Per Hari view
+    const gridRows = computed(() => {
+      const kelasCols = kelasOrderedForDay.value;
+      if (kelasCols.length === 0) return [];
+      
+      const blocks = currentItems.value;
       let maxSlot = 0;
       for (const b of blocks) {
         if (Array.isArray(b.slots) && b.slots.length) {
@@ -527,29 +773,34 @@ export default {
         }
       }
       if (!maxSlot) maxSlot = 12;
+      
       const maxBreak = breakMarkers.value.reduce((acc, marker) => Math.max(acc, Number(marker.afterSlot) || 0), 0);
       if (maxBreak > maxSlot) {
         maxSlot = maxBreak;
       }
+      
       const cellMap = new Map();
       for (const k of kelasCols) {
         cellMap.set(k.id, {});
       }
+      
       const breakBoundarySet = new Set(
         breakMarkers.value
           .map(marker => Number(marker.afterSlot))
           .filter(num => Number.isFinite(num) && num > 0)
       );
+      
       for (const b of blocks) {
         const k = b.kelas_id;
         if (!cellMap.has(k)) continue;
         const slots = Array.isArray(b.slots) && b.slots.length
-          ? b.slots.slice().sort((a,b) => a-b)
-          : Array.from({length: b.size || 0}, (_,i) => (b.start||0)+i);
+          ? b.slots.slice().sort((a, b) => a - b)
+          : Array.from({ length: b.size || 0 }, (_, i) => (b.start || 0) + i);
         if (!slots.length) continue;
+        
         const segments = [];
         let currentSegment = [];
-        slots.forEach((slot, idx) => {
+        slots.forEach((slot) => {
           if (!Number.isFinite(slot)) return;
           if (!currentSegment.length) {
             currentSegment = [slot];
@@ -569,6 +820,7 @@ export default {
         if (currentSegment.length) {
           segments.push(currentSegment);
         }
+        
         segments.forEach((segmentSlots, segIdx) => {
           const segStart = segmentSlots[0];
           const segSize = segmentSlots.length;
@@ -585,6 +837,7 @@ export default {
           }
         });
       }
+      
       const rows = [];
       const breakLookup = {};
       breakMarkers.value.forEach((marker, idx) => {
@@ -592,8 +845,9 @@ export default {
         if (!Number.isFinite(boundary) || boundary <= 0) return;
         breakLookup[boundary] = marker.label || `Istirahat ${idx + 1}`;
       });
+      
       for (let s = 1; s <= maxSlot; s++) {
-        const row = { key: `slot-${hari_index}-${s}`, slot: s, cells: [], isBreak: false };
+        const row = { key: `slot-${selectedHari.value}-${s}`, slot: s, cells: [], isBreak: false };
         for (const k of kelasCols) {
           const spec = cellMap.get(k.id)[s];
           if (spec) {
@@ -605,20 +859,130 @@ export default {
         rows.push(row);
         if (breakLookup[s]) {
           rows.push({
-            key: `break-${hari_index}-${s}`,
+            key: `break-${selectedHari.value}-${s}`,
             isBreak: true,
             label: breakLookup[s],
           });
         }
       }
-      return { hari_index, hari: dayNames.value[hari_index] || `${hari_index}`, rows };
+      
+      return rows;
+    });
+
+    const processedKelasItems = computed(() => {
+      return currentItems.value
+        .slice()
+        .sort((a, b) => {
+          if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
+          return (a.start || 0) - (b.start || 0);
+        })
+        .map(item => ({
+          hari: item.hari,
+          start: item.start,
+          mapel: item.mapel_nama || item.mapel_id,
+          guru: item.guru_nama || item.guru_id,
+          size: item.size
+        }));
+    });
+
+    const processedGuruItems = computed(() => {
+      return currentItems.value
+        .slice()
+        .sort((a, b) => {
+          if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
+          return (a.start || 0) - (b.start || 0);
+        })
+        .map(item => ({
+          hari: item.hari,
+          start: item.start,
+          kelas: item.kelas_nama || item.kelas_id,
+          mapel: item.mapel_nama || item.mapel_id,
+          size: item.size
+        }));
+    });
+
+    // Total JP
+    const totalJP = computed(() => {
+      return currentItems.value.reduce((sum, item) => sum + (item.size || 0), 0);
+    });
+
+    // Filtered lists for searchable dropdowns
+    const filteredKelasList = computed(() => {
+      if (!kelasSearch.value) return kelasList.value;
+      const keyword = kelasSearch.value.toLowerCase();
+      return kelasList.value.filter(k => {
+        const nama = (k.nama || '').toLowerCase();
+        const kode = (k.kode || '').toLowerCase();
+        return nama.includes(keyword) || kode.includes(keyword);
+      });
+    });
+
+    const filteredGuruList = computed(() => {
+      if (!guruSearch.value) return guruList.value;
+      const keyword = guruSearch.value.toLowerCase();
+      return guruList.value.filter(g => {
+        const nama = (g.nama || '').toLowerCase();
+        const kode = (g.kode || '').toLowerCase();
+        return nama.includes(keyword) || kode.includes(keyword);
+      });
+    });
+
+    // Dropdown toggle functions
+    const toggleKelasDropdown = () => {
+      kelasDropdownOpen.value = !kelasDropdownOpen.value;
+      guruDropdownOpen.value = false;
+      if (kelasDropdownOpen.value) {
+        kelasSearch.value = '';
+      }
     };
 
-    const gridDays = computed(() => {
-      const present = new Set(items.value.map(it => it.hari_index).filter(v => v !== undefined && v !== null));
-      const idxs = Array.from(present.values()).sort((a,b) => a-b);
-      return idxs.map(i => buildDayGrid(i));
-    });
+    const toggleGuruDropdown = () => {
+      guruDropdownOpen.value = !guruDropdownOpen.value;
+      kelasDropdownOpen.value = false;
+      if (guruDropdownOpen.value) {
+        guruSearch.value = '';
+      }
+    };
+
+    // Select functions
+    const selectKelas = (id) => {
+      selectedKelas.value = id;
+      kelasDropdownOpen.value = false;
+      kelasSearch.value = '';
+      loadKelasItems();
+    };
+
+    const selectGuru = (id) => {
+      selectedGuru.value = id;
+      guruDropdownOpen.value = false;
+      guruSearch.value = '';
+      loadGuruItems();
+    };
+
+    // Clear selection functions
+    const clearKelasSelection = () => {
+      selectedKelas.value = '';
+      currentItems.value = [];
+    };
+
+    const clearGuruSelection = () => {
+      selectedGuru.value = '';
+      currentItems.value = [];
+    };
+
+    // Click outside handler for dropdowns
+    const handleClickOutside = (event) => {
+      if (kelasDropdownRef.value && !kelasDropdownRef.value.contains(event.target)) {
+        kelasDropdownOpen.value = false;
+      }
+      if (guruDropdownRef.value && !guruDropdownRef.value.contains(event.target)) {
+        guruDropdownOpen.value = false;
+      }
+    };
+
+    // Helper functions
+    const getKelasName = (id) => kelasMap.value[id] || id;
+    const getGuruName = (id) => guruMap.value[id] || id;
 
     const getStatusVariant = (status) => {
       const variants = {
@@ -646,21 +1010,61 @@ export default {
       router.push({ name: 'Jadwal' });
     };
 
-    onMounted(() => {
-      loadJadwal();
+    onMounted(async () => {
+      document.addEventListener('click', handleClickOutside);
+      await Promise.all([loadKonfigurasi(), loadReferences()]);
+      await loadJadwalStatus();
+    });
+
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside);
     });
 
     return {
       periode,
-      loading,
+      loadingStatus,
+      loadingItems,
       error,
-      jadwalData,
-      items,
+      jadwalStatus,
+      currentItems,
+      rawItems,
+      rawDataLoaded,
       activeTab,
-      kelasGroups,
-      guruGroups,
-      kelasOrdered,
-      gridDays,
+      selectedHari,
+      selectedKelas,
+      selectedGuru,
+      dayNames,
+      guruList,
+      kelasList,
+      kelasOrderedForDay,
+      gridRows,
+      processedHariItems,
+      processedKelasItems,
+      processedGuruItems,
+      totalJP,
+      // Searchable dropdown states and functions
+      kelasDropdownOpen,
+      kelasDropdownRef,
+      kelasSearch,
+      guruDropdownOpen,
+      guruDropdownRef,
+      guruSearch,
+      filteredKelasList,
+      filteredGuruList,
+      toggleKelasDropdown,
+      toggleGuruDropdown,
+      selectKelas,
+      selectGuru,
+      clearKelasSelection,
+      clearGuruSelection,
+      // Other functions
+      switchTab,
+      selectHari,
+      loadKelasItems,
+      loadGuruItems,
+      loadAllRawData,
+      getKelasName,
+      getGuruName,
       getStatusVariant,
       formatDate,
       goBack
@@ -670,5 +1074,13 @@ export default {
 </script>
 
 <style scoped>
-/* Add any custom styles here */
+/* Fade transition for dropdowns */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
