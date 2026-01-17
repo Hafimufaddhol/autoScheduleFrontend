@@ -1,4 +1,5 @@
 import apiClient from '@/utils/apiClient'
+import { fetchReferenceWithCache, invalidateReferenceCache, CACHE_KEYS } from '@/utils/referenceCache'
 
 function buildQuery(opts = {}) {
   const params = new URLSearchParams()
@@ -23,7 +24,8 @@ const mapelRepository = {
   },
 
   getReference() {
-    return apiClient.get('/mapel/reference').then(r => r.data)
+    return fetchReferenceWithCache('/mapel/reference', CACHE_KEYS.MAPEL)
+      .then(data => ({ data }))
   },
 
   getById(id) {
@@ -31,15 +33,24 @@ const mapelRepository = {
   },
 
   create(data) {
-    return apiClient.post('/mapel', data).then(r => r.data)
+    return apiClient.post('/mapel', data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.MAPEL)
+      return r.data
+    })
   },
 
   update(id, data) {
-    return apiClient.put(`/mapel/${id}`, data).then(r => r.data)
+    return apiClient.put(`/mapel/${id}`, data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.MAPEL)
+      return r.data
+    })
   },
 
   delete(id) {
-    return apiClient.delete(`/mapel/${id}`).then(r => r.data)
+    return apiClient.delete(`/mapel/${id}`).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.MAPEL)
+      return r.data
+    })
   }
 }
 

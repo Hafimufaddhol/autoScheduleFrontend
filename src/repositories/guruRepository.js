@@ -1,4 +1,5 @@
 import apiClient from '@/utils/apiClient'
+import { fetchReferenceWithCache, invalidateReferenceCache, CACHE_KEYS } from '@/utils/referenceCache'
 
 function buildQuery(opts = {}) {
   const params = new URLSearchParams()
@@ -23,7 +24,8 @@ const guruRepository = {
   },
 
   getReference() {
-    return apiClient.get('/guru/reference').then(r => r.data)
+    return fetchReferenceWithCache('/guru/reference', CACHE_KEYS.GURU)
+      .then(data => ({ data }))
   },
 
   getById(id) {
@@ -31,15 +33,24 @@ const guruRepository = {
   },
 
   create(data) {
-    return apiClient.post('/guru', data).then(r => r.data)
+    return apiClient.post('/guru', data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.GURU)
+      return r.data
+    })
   },
 
   update(id, data) {
-    return apiClient.put(`/guru/${id}`, data).then(r => r.data)
+    return apiClient.put(`/guru/${id}`, data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.GURU)
+      return r.data
+    })
   },
 
   delete(id) {
-    return apiClient.delete(`/guru/${id}`).then(r => r.data)
+    return apiClient.delete(`/guru/${id}`).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.GURU)
+      return r.data
+    })
   },
 
   // Kompetensi management

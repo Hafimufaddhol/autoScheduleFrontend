@@ -1,4 +1,5 @@
 import apiClient from '@/utils/apiClient'
+import { fetchReferenceWithCache, invalidateReferenceCache, CACHE_KEYS } from '@/utils/referenceCache'
 
 function buildQuery(opts = {}) {
   const params = new URLSearchParams()
@@ -23,7 +24,8 @@ const kelasRepository = {
   },
 
   getReference() {
-    return apiClient.get('/kelas/reference').then(r => r.data)
+    return fetchReferenceWithCache('/kelas/reference', CACHE_KEYS.KELAS)
+      .then(data => ({ data }))
   },
 
   getById(id) {
@@ -31,15 +33,24 @@ const kelasRepository = {
   },
 
   create(data) {
-    return apiClient.post('/kelas', data).then(r => r.data)
+    return apiClient.post('/kelas', data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.KELAS)
+      return r.data
+    })
   },
 
   update(id, data) {
-    return apiClient.put(`/kelas/${id}`, data).then(r => r.data)
+    return apiClient.put(`/kelas/${id}`, data).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.KELAS)
+      return r.data
+    })
   },
 
   delete(id) {
-    return apiClient.delete(`/kelas/${id}`).then(r => r.data)
+    return apiClient.delete(`/kelas/${id}`).then(r => {
+      invalidateReferenceCache(CACHE_KEYS.KELAS)
+      return r.data
+    })
   }
 }
 
