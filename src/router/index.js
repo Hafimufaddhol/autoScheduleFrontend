@@ -17,13 +17,13 @@ const routes = [
   {
     path: '/',
     component: MainLayout,
-    // meta: { requiresAuth: true }, // semua child butuh login
+    meta: { requiresAuth: true },
     children: [
-      // {
-      //   path: '',
-      //   name: 'Dashboard',
-      //   component: Dashboard
-      // },
+      {
+        path: '',
+        name: 'Dashboard',
+        component: Dashboard
+      },
       {
         path: 'jadwal',
         name: 'Jadwal',
@@ -85,6 +85,10 @@ const routes = [
         component: Users
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'Dashboard' }
   }
 ]
 
@@ -93,15 +97,17 @@ const router = createRouter({
   routes
 })
 
-// Route Guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
+  await auth.ensureReady()
 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return next({ name: 'Login' })
+  const requiresAuth = to.matched.some(record => record.meta?.requiresAuth !== false)
+
+  if (requiresAuth && !auth.isAuthenticated) {
+    return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
 
-  if (to.name === 'Login' && auth.isAuthenticated) {
+  if (!requiresAuth && to.name === 'Login' && auth.isAuthenticated) {
     return next({ name: 'Dashboard' })
   }
 

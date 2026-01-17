@@ -1,26 +1,24 @@
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import apiClient from '@/utils/apiClient'
 
 const konfigurasiRepository = {
   get() {
-    return axios.get(`${API_URL}/konfigurasi`)
+    return apiClient.get('/konfigurasi')
   },
 
   update(data) {
-    return axios.put(`${API_URL}/konfigurasi`, data)
+    return apiClient.put('/konfigurasi', data)
   },
 
   getPaket() {
-    return axios.get(`${API_URL}/konfigurasi/paket`).then(r => r.data)
+    return apiClient.get('/konfigurasi/paket').then(r => r.data)
   },
 
   addPaket(name) {
-    return axios.post(`${API_URL}/konfigurasi/paket`, { name }).then(r => r.data)
+    return apiClient.post('/konfigurasi/paket', { name }).then(r => r.data)
   },
 
   deletePaket(name) {
-    return axios.delete(`${API_URL}/konfigurasi/paket/${encodeURIComponent(name)}`).then(r => r.data)
+    return apiClient.delete(`/konfigurasi/paket/${encodeURIComponent(name)}`).then(r => r.data)
   }
 }
 

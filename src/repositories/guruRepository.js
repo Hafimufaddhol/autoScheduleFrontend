@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import apiClient from '@/utils/apiClient'
 
 function buildQuery(opts = {}) {
   const params = new URLSearchParams()
@@ -21,44 +19,44 @@ function buildQuery(opts = {}) {
 const guruRepository = {
   getAll(options = {}) {
     const q = buildQuery(options)
-    return axios.get(`${API_URL}/guru${q}`).then(r => r.data)
+    return apiClient.get(`/guru${q}`).then(r => r.data)
   },
 
   getReference() {
-    return axios.get(`${API_URL}/guru/reference`).then(r => r.data)
+    return apiClient.get('/guru/reference').then(r => r.data)
   },
 
   getById(id) {
-    return axios.get(`${API_URL}/guru/${id}`).then(r => r.data)
+    return apiClient.get(`/guru/${id}`).then(r => r.data)
   },
 
   create(data) {
-    return axios.post(`${API_URL}/guru`, data).then(r => r.data)
+    return apiClient.post('/guru', data).then(r => r.data)
   },
 
   update(id, data) {
-    return axios.put(`${API_URL}/guru/${id}`, data).then(r => r.data)
+    return apiClient.put(`/guru/${id}`, data).then(r => r.data)
   },
 
   delete(id) {
-    return axios.delete(`${API_URL}/guru/${id}`).then(r => r.data)
+    return apiClient.delete(`/guru/${id}`).then(r => r.data)
   },
 
   // Kompetensi management
   getKompetensi(guruId) {
-    return axios.get(`${API_URL}/guru/${guruId}/kompetensi`)
+    return apiClient.get(`/guru/${guruId}/kompetensi`)
   },
 
   addKompetensi(guruId, mapelId) {
-    return axios.post(`${API_URL}/guru/${guruId}/kompetensi`, { mapel_id: mapelId })
+    return apiClient.post(`/guru/${guruId}/kompetensi`, { mapel_id: mapelId })
   },
 
   addKompetensiBulk(guruId, items) {
-    return axios.post(`${API_URL}/guru/${guruId}/kompetensi`, { items })
+    return apiClient.post(`/guru/${guruId}/kompetensi`, { items })
   },
 
   deleteKompetensi(guruId, mapelId) {
-    return axios.delete(`${API_URL}/guru/${guruId}/kompetensi/${mapelId}`)
+    return apiClient.delete(`/guru/${guruId}/kompetensi/${mapelId}`)
   }
 }
 

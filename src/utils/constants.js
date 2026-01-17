@@ -164,7 +164,7 @@ export const ANIMATION_DURATION = {
 // Local storage keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
-  USER_DATA: 'user_data',
+  USER_DATA: 'user',
   THEME: 'theme',
   LANGUAGE: 'language',
   SIDEBAR_STATE: 'sidebar_state'

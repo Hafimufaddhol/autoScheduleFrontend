@@ -1,13 +1,15 @@
 <template>
   <div class="min-h-screen" :class="bodyClass">
     <!-- Sidebar -->
-    <Sidebar />
+  <Sidebar />
 
     <!-- Navbar -->
     <Navbar
-    :userName="currentUserName"
+      :user-name="displayName"
+      :user-menu-items="userMenuItems"
       @toggle-sidebar="toggleSidebar"
       @search="handleSearch"
+      @user-menu-click="handleUserMenuClick"
     />
 
     <!-- Main Content -->
@@ -18,12 +20,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useSidebar } from '@/composables/useSidebar.js'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import Navbar from './Navbar.vue'
 import Sidebar from './Sidebar.vue'
-
-const currentUserName = ref('User')
 
 // Props
 const props = defineProps({
@@ -32,23 +35,32 @@ const props = defineProps({
 
 // Composable Sidebar
 const { toggle, checkMobile } = useSidebar()
+const authStore = useAuthStore()
+const { user } = storeToRefs(authStore)
+const router = useRouter()
+
+const displayName = computed(() => user.value?.displayName || user.value?.name || user.value?.email || 'Pengguna')
+const userMenuItems = [{ name: 'Keluar', action: 'logout' }]
 
 const toggleSidebar = () => toggle()
 const handleSearch = (query) => {
   console.log('Search query:', query)
 }
 
-onMounted(() => {
-  const storedUser = localStorage.getItem("user")
-  if (storedUser) {
-    try {
-      const parsed = JSON.parse(storedUser)
-      currentUserName.value = parsed.name
-    } catch (e) {
-      console.error("Error parsing user:", e)
-    }
+const handleUserMenuClick = async (item) => {
+  if (item?.action === 'logout') {
+    await handleLogout()
+  } else if (item?.href) {
+    router.push(item.href)
   }
+}
 
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push({ name: 'Login' })
+}
+
+onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
 })

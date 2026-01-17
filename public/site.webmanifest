@@ -1,0 +1,21 @@
+{
+  "name": "Autoschedule Dashboard",
+  "short_name": "Autoschedule",
+  "description": "Administrative dashboard for Autoschedule.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/user.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

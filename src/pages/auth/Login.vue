@@ -16,7 +16,7 @@
         </div>
 
         <!-- Alert Message -->
-        <div v-if="errorMessage" class="mb-6 p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg"
+        <div v-if="activeError" class="mb-6 p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg"
           role="alert">
           <div class="flex items-center">
             <svg class="flex-shrink-0 inline w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -24,7 +24,7 @@
                 d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                 clip-rule="evenodd" />
             </svg>
-            <span>{{ errorMessage }}</span>
+            <span>{{ activeError }}</span>
           </div>
         </div>
 
@@ -74,9 +74,9 @@
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" :disabled="isLoading"
+          <button type="submit" :disabled="authLoading"
             class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <span v-if="!isLoading">Masuk</span>
+            <span v-if="!authLoading">Masuk</span>
             <span v-else class="flex items-center justify-center">
               <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -126,51 +126,59 @@
 </template>
 
 <script setup>
+import { ref, computed, watchEffect } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
-import { ref } from 'vue'
 
 const auth = useAuthStore()
+const { loading, error, isAuthenticated } = storeToRefs(auth)
 const router = useRouter()
+const route = useRoute()
 
 const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
 const showPassword = ref(false)
-const isLoading = ref(false)
-const errorMessage = ref('')
+const localError = ref('')
+
+const authLoading = computed(() => loading.value)
+const activeError = computed(() => localError.value || error.value)
+
+const redirectAfterLogin = () => {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect) {
+    router.push(redirect)
+  } else {
+    router.push({ name: 'Dashboard' })
+  }
+}
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
-    errorMessage.value = 'Email dan kata sandi harus diisi!'
+    localError.value = 'Email dan kata sandi harus diisi!'
     return
   }
 
-  isLoading.value = true
-  errorMessage.value = ''
+  localError.value = ''
 
   try {
-    const credentials = {
+    await auth.login({
       email: email.value,
       password: password.value,
       rememberMe: rememberMe.value
-    }
-
-    const success = await auth.login(credentials)
-    console.log(credentials)
-
-    if (success) {
-      router.push({ name: "Dashboard" })
-    } else {
-      errorMessage.value = "Email atau kata sandi salah!"
-    }
-  } catch (error) {
-    errorMessage.value = "Terjadi kesalahan saat login. Silakan coba lagi."
-    console.error('Login error:', error)
-  } finally {
-    isLoading.value = false
+    })
+    redirectAfterLogin()
+  } catch (err) {
+    console.error('Login error:', err)
   }
 }
+
+watchEffect(() => {
+  if (isAuthenticated.value) {
+    redirectAfterLogin()
+  }
+})
 </script>
 
 <style scoped>

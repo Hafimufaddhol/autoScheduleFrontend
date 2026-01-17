@@ -118,17 +118,26 @@
               aria-labelledby="user-menu-button" 
               tabindex="-1"
             >
-              <a 
-                v-for="item in userMenuItems" 
-                :key="item.name"
-                :href="item.href" 
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
-                role="menuitem" 
-                tabindex="-1"
-                @click="handleUserMenuClick(item)"
-              >
-                {{ item.name }}
-              </a>
+              <template v-for="item in userMenuItems" :key="item.name">
+                <button
+                  v-if="!item.href"
+                  type="button"
+                  class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                  @click="handleUserMenuClick(item)"
+                >
+                  {{ item.name }}
+                </button>
+                <a
+                  v-else
+                  :href="item.href"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                  @click.prevent="handleUserMenuClick(item)"
+                >
+                  {{ item.name }}
+                </a>
+              </template>
             </div>
           </div>
         </div>
@@ -185,7 +194,7 @@ const props = defineProps({
     default: () => [
       { name: 'Your Profile', href: '/profile' },
       { name: 'Settings', href: '/settings' },
-      { name: 'Sign out', href: '/logout' }
+      { name: 'Sign out', action: 'logout' }
     ]
   }
 })

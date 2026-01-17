@@ -25,16 +25,14 @@
 
           <!-- Bottom Section -->
           <div class="space-y-2 pt-2">
-            <a
-              v-for="item in bottomItems"
-              :key="item.name"
-              :href="item.href"
-              :target="item.external ? '_blank' : '_self'"
-              class="text-base text-gray-900 font-normal rounded-lg hover:bg-gray-100 group transition duration-75 flex items-center p-2"
+            <button
+              type="button"
+              class="w-full text-left text-base text-gray-900 font-normal rounded-lg hover:bg-gray-100 group transition duration-75 flex items-center p-2"
+              @click="handleLogout"
             >
-              <i :class="['w-5 h-5 text-gray-500 group-hover:text-gray-900', item.icon]"></i>
-              <span class="ml-3">{{ item.name }}</span>
-            </a>
+              <i class="w-5 h-5 text-gray-500 group-hover:text-gray-900 fa-solid fa-right-from-bracket"></i>
+              <span class="ml-3">Logout</span>
+            </button>
           </div>
         </div>
       </div>
@@ -51,10 +49,13 @@
 
 <script setup>
 import { useSidebar } from '@/composables/useSidebar.js'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const { isOpen, isMobile, close, sidebarClasses } = useSidebar()
 const route = useRoute()
+const authStore = useAuthStore()
+const router = useRouter()
 
 // Navigation items (Font Awesome classes)
 const navigationItems = [
@@ -67,12 +68,12 @@ const navigationItems = [
   // { name: 'Pengguna', href: '/users', icon: 'fa-solid fa-users' },
 ]
 
-// Bottom items (opsional)
-const bottomItems = [
-  { name: 'Logout', href: '/logout', icon: 'fa-solid fa-right-from-bracket' },
-]
-
 const isActiveRoute = (href) => route.path === href || route.path.startsWith(`${href}/`)
+
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push({ name: 'Login' })
+}
 </script>
 
 <style>

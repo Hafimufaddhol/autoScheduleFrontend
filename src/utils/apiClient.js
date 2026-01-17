@@ -1,51 +1,44 @@
-// src/api/apiClient.js
 import axios from 'axios'
-import { useCurrentUserStore } from '@/store/current-user.store'
+import pinia from '@/stores'
+import { useAuthStore } from '@/stores/auth'
 
-// bikin instance axios
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '')
+
 const apiClient = axios.create({
-  baseURL: '/api', // bisa disesuaikan dari .env
+  baseURL: API_BASE_URL,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json'
   }
 })
 
-// Interceptor request → tambah token
 apiClient.interceptors.request.use(
-  (config) => {
-    const store = useCurrentUserStore()
-    if (store.token) {
-      config.headers.Authorization = `Bearer ${store.token}`
+  async (config) => {
+    const auth = useAuthStore(pinia)
+    const token = await auth.getAccessToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// Interceptor response → refresh token kalau 401
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !originalRequest._retry
-    ) {
+    const originalRequest = error.config || {}
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
-      const store = useCurrentUserStore()
-
-      // refresh token
-      const res = await axios.post('/api/users/refresh', {
-        refreshToken: store.refreshToken,
-        role: store.userProfile?.currentRole
-      })
-
-      const newToken = res.data.data.token
-      store.setAccessToken(newToken)
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-      return apiClient(originalRequest)
+      const auth = useAuthStore(pinia)
+      const token = await auth.getAccessToken(true)
+      if (token) {
+        originalRequest.headers = {
+          ...(originalRequest.headers || {}),
+          Authorization: `Bearer ${token}`
+        }
+        return apiClient(originalRequest)
+      }
     }
     return Promise.reject(error)
   }

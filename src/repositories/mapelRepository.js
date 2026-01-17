@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import apiClient from '@/utils/apiClient'
 
 function buildQuery(opts = {}) {
   const params = new URLSearchParams()
@@ -21,27 +19,27 @@ function buildQuery(opts = {}) {
 const mapelRepository = {
   getAll(options = {}) {
     const q = buildQuery(options)
-    return axios.get(`${API_URL}/mapel${q}`).then(r => r.data)
+    return apiClient.get(`/mapel${q}`).then(r => r.data)
   },
 
   getReference() {
-    return axios.get(`${API_URL}/mapel/reference`).then(r => r.data)
+    return apiClient.get('/mapel/reference').then(r => r.data)
   },
 
   getById(id) {
-    return axios.get(`${API_URL}/mapel/${id}`).then(r => r.data)
+    return apiClient.get(`/mapel/${id}`).then(r => r.data)
   },
 
   create(data) {
-    return axios.post(`${API_URL}/mapel`, data).then(r => r.data)
+    return apiClient.post('/mapel', data).then(r => r.data)
   },
 
   update(id, data) {
-    return axios.put(`${API_URL}/mapel/${id}`, data).then(r => r.data)
+    return apiClient.put(`/mapel/${id}`, data).then(r => r.data)
   },
 
   delete(id) {
-    return axios.delete(`${API_URL}/mapel/${id}`).then(r => r.data)
+    return apiClient.delete(`/mapel/${id}`).then(r => r.data)
   }
 }
 
