@@ -49,7 +49,7 @@
     >
       <template #cell-kompetensi="{ row }">
         <div class="flex flex-wrap gap-1">
-          <Badge v-for="(val, mapelId) in row.kompetensi" :key="mapelId" :label="mapelId" variant="primary" />
+          <Badge v-for="(val, mapelId) in row.kompetensi" :key="mapelId" :label="mapelNamaMap[mapelId] || mapelId" variant="primary" />
         </div>
       </template>
       <template #cell-hari_tidak_masuk="{ row }">
@@ -235,6 +235,16 @@ const form = ref({
 })
 
 const selectedKompetensi = ref([])
+
+// Map mapelId to nama for display
+const mapelNamaMap = computed(() => {
+  const map = {}
+  availableMapels.value.forEach(mapel => {
+    map[mapel.id] = mapel.nama || mapel.kode || mapel.id
+  })
+  return map
+})
+
 const filteredMapels = computed(() => {
   if (!kompetensiSearch.value) {
     return availableMapels.value
