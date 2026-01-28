@@ -196,6 +196,109 @@
           </button>
         </div>
 
+        <!-- Definisi JP Section -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Definisi Jam Pelajaran (JP)</h3>
+              <p class="text-sm text-gray-500">Tentukan waktu mulai dan selesai untuk setiap JP.</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div v-for="(jp, index) in form.definisi_jp" :key="`jp-${index}`" class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 border border-gray-100 rounded-lg p-3">
+              <div class="flex-1">
+                <Input
+                  v-model.number="jp.jp"
+                  type="number"
+                  min="1"
+                  label="JP ke-"
+                  placeholder="1"
+                />
+              </div>
+              <div class="flex-1">
+                <Input
+                  v-model="jp.mulai"
+                  type="time"
+                  label="Mulai"
+                  placeholder="07:00"
+                />
+              </div>
+              <div class="flex-1">
+                <Input
+                  v-model="jp.selesai"
+                  type="time"
+                  label="Selesai"
+                  placeholder="07:45"
+                />
+              </div>
+              <button
+                type="button"
+                @click="removeJP(index)"
+                class="text-red-600 hover:text-red-700"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+            <p v-if="form.definisi_jp.length === 0" class="text-sm text-gray-400">Belum ada definisi JP.</p>
+          </div>
+
+          <button
+            type="button"
+            @click="addJP"
+            class="mt-3 inline-flex items-center text-cyan-600 hover:text-cyan-800 font-medium"
+          >
+            <i class="fa-solid fa-plus mr-2"></i> Tambah JP
+          </button>
+        </div>
+
+        <!-- Jam Istirahat Section -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Jam Istirahat</h3>
+              <p class="text-sm text-gray-500">Konfigurasi jam istirahat (untuk keperluan solver).</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div v-for="(ist, index) in form.jam_istirahat" :key="`istirahat-${index}`" class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 border border-gray-100 rounded-lg p-3">
+              <div class="flex-1">
+                <Input
+                  v-model.number="ist.mulai"
+                  type="number"
+                  min="1"
+                  label="Setelah JP ke-"
+                  placeholder="Mulai"
+                />
+              </div>
+              <div class="flex-1">
+                <Input
+                  v-model.number="ist.selesai"
+                  type="number"
+                  min="1"
+                  label="Sebelum JP ke-"
+                  placeholder="Selesai"
+                />
+              </div>
+              <button
+                type="button"
+                @click="removeIstirahat(index)"
+                class="text-red-600 hover:text-red-700"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+            <p v-if="form.jam_istirahat.length === 0" class="text-sm text-gray-400">Belum ada jam istirahat.</p>
+          </div>
+
+          <button
+            type="button"
+            @click="addIstirahat"
+            class="mt-3 inline-flex items-center text-cyan-600 hover:text-cyan-800 font-medium"
+          >
+            <i class="fa-solid fa-plus mr-2"></i> Tambah Jam Istirahat
+          </button>
+        </div>
+
         <div class="flex justify-end">
           <button
             type="submit"
@@ -229,7 +332,9 @@ const form = ref({
   max_jp_per_mapel_per_minggu: 5,
   guru_max_jp_per_hari: 5,
   default_slot_harian: [],
-  olahraga_mapel_ids: []
+  olahraga_mapel_ids: [],
+  definisi_jp: [],
+  jam_istirahat: []
 })
 
 const paket = ref([])
@@ -297,6 +402,23 @@ const normalizeOlahragaIds = (raw) => {
   return []
 }
 
+const normalizeJamIstirahat = (raw) => {
+  if (!Array.isArray(raw)) return []
+  return raw.map(item => ({
+    mulai: Number(item.mulai) || 1,
+    selesai: Number(item.selesai) || 2
+  }))
+}
+
+const normalizeDefinisiJP = (raw) => {
+  if (!Array.isArray(raw)) return []
+  return raw.map(item => ({
+    jp: Number(item.jp) || 1,
+    mulai: item.mulai || '07:00',
+    selesai: item.selesai || '07:45'
+  })).sort((a, b) => a.jp - b.jp)
+}
+
 const fetchKonfigurasi = async () => {
   loading.value = true
   try {
@@ -309,7 +431,9 @@ const fetchKonfigurasi = async () => {
       max_jp_per_mapel_per_minggu: data.max_jp_per_mapel_per_minggu || 5,
       guru_max_jp_per_hari: data.guru_max_jp_per_hari || 5,
       default_slot_harian: normalizeSlotHarian(data.default_slot_harian),
-      olahraga_mapel_ids: normalizeOlahragaIds(data.olahraga_mapel_ids)
+      olahraga_mapel_ids: normalizeOlahragaIds(data.olahraga_mapel_ids),
+      definisi_jp: normalizeDefinisiJP(data.definisi_jp),
+      jam_istirahat: normalizeJamIstirahat(data.jam_istirahat)
     }
 
     // Fetch paket
@@ -348,6 +472,49 @@ const addSlot = () => {
 
 const removeSlot = (index) => {
   form.value.default_slot_harian.splice(index, 1)
+}
+
+const addJP = () => {
+  const nextJP = form.value.definisi_jp.length + 1
+  const lastJP = form.value.definisi_jp[form.value.definisi_jp.length - 1]
+  
+  // Auto-calculate next time slot (45 min after last)
+  let mulai = '07:00'
+  let selesai = '07:50'
+  
+  if (lastJP) {
+    mulai = lastJP.selesai
+    const [h, m] = mulai.split(':').map(Number)
+    const totalMinutes = h * 60 + m + 50
+    const newH = Math.floor(totalMinutes / 60)
+    const newM = totalMinutes % 60
+    selesai = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`
+  }
+  
+  form.value.definisi_jp.push({
+    jp: nextJP,
+    mulai,
+    selesai
+  })
+}
+
+const removeJP = (index) => {
+  form.value.definisi_jp.splice(index, 1)
+  // Re-number JP sequence
+  form.value.definisi_jp.forEach((jp, idx) => {
+    jp.jp = idx + 1
+  })
+}
+
+const addIstirahat = () => {
+  form.value.jam_istirahat.push({
+    mulai: 4,
+    selesai: 5
+  })
+}
+
+const removeIstirahat = (index) => {
+  form.value.jam_istirahat.splice(index, 1)
 }
 
 const handleSubmit = async () => {
