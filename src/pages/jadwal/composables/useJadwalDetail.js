@@ -24,6 +24,7 @@ const guruMap = ref({});
 const mapelMap = ref({});
 const kelasMap = ref({});
 const breakMarkers = ref([]);
+const definisiJP = ref([]); // JP time definitions
 
 // Selection states
 const selectedHari = ref(0);
@@ -44,6 +45,21 @@ export function useJadwalDetail() {
       if (Array.isArray(konf.hari) && konf.hari.length) {
         dayNames.value = konf.hari;
       }
+      
+      // Load definisi JP
+      if (Array.isArray(konf.definisi_jp) && konf.definisi_jp.length) {
+        definisiJP.value = konf.definisi_jp
+          .map(item => ({
+            jp: Number(item.jp) || 0,
+            mulai: item.mulai || '',
+            selesai: item.selesai || ''
+          }))
+          .filter(item => item.jp > 0 && item.mulai && item.selesai)
+          .sort((a, b) => a.jp - b.jp);
+      } else {
+        definisiJP.value = [];
+      }
+      
       // Parse break markers
       const rawBreaks = Array.isArray(konf.jam_istirahat) ? konf.jam_istirahat : [];
       if (rawBreaks.length) {
@@ -304,6 +320,15 @@ export function useJadwalDetail() {
   const getKelasName = (id) => kelasMap.value[id] || id;
   const getGuruName = (id) => guruMap.value[id] || id;
   const getMapelName = (id) => mapelMap.value[id] || id;
+  
+  // Get JP time from definisi_jp
+  const getJPTime = (jpNumber) => {
+    const def = definisiJP.value.find(d => d.jp === jpNumber);
+    if (def) {
+      return `${def.mulai} - ${def.selesai}`;
+    }
+    return `JP ${jpNumber}`;
+  };
 
   const getStatusVariant = (status) => {
     const variants = {
@@ -473,7 +498,13 @@ export function useJadwalDetail() {
     });
     
     for (let s = 1; s <= maxSlot; s++) {
-      const row = { key: `slot-${selectedHari.value}-${s}`, slot: s, cells: [], isBreak: false };
+      const row = { 
+        key: `slot-${selectedHari.value}-${s}`, 
+        slot: s, 
+        waktu: getJPTime(s),
+        cells: [], 
+        isBreak: false 
+      };
       for (const k of kelasCols) {
         const spec = cellMap.get(k.id)[s];
         if (spec) {
@@ -496,35 +527,151 @@ export function useJadwalDetail() {
   });
 
   const processedKelasItems = computed(() => {
-    return currentItems.value
-      .slice()
-      .sort((a, b) => {
-        if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
-        return (a.start || 0) - (b.start || 0);
-      })
-      .map(item => ({
-        hari: item.hari,
-        start: item.start,
-        mapel: item.mapel_nama || item.mapel_id,
-        guru: item.guru_nama || item.guru_id,
-        size: item.size
-      }));
+    const expanded = [];
+    
+    currentItems.value.forEach(item => {
+      const slots = item.slots || [];
+      const size = item.size || slots.length || 1;
+      
+      if (size === 1 || slots.length === 1) {
+        // Single slot - just add time
+        const slotNum = slots[0] || item.start || 1;
+        expanded.push({
+          hari: item.hari,
+          slot: slotNum,
+          waktu: getJPTime(slotNum),
+          mapel: item.mapel_nama || item.mapel_id,
+          guru: item.guru_nama || item.guru_id,
+          isContinuation: false
+        });
+      } else {
+        // Multiple slots - expand into separate rows
+        slots.forEach((slotNum, idx) => {
+          expanded.push({
+            hari: item.hari,
+            slot: slotNum,
+            waktu: getJPTime(slotNum),
+            mapel: item.mapel_nama || item.mapel_id,
+            guru: item.guru_nama || item.guru_id,
+            isContinuation: idx > 0 // Flag for UI styling
+          });
+        });
+      }
+    });
+    
+    // Sort by hari_index and slot
+    const sorted = expanded.sort((a, b) => {
+      const hariA = dayNames.value.indexOf(a.hari);
+      const hariB = dayNames.value.indexOf(b.hari);
+      if (hariA !== hariB) return hariA - hariB;
+      return a.slot - b.slot;
+    });
+    
+    // Add rowspan info for hari column
+    const withRowspan = [];
+    let currentHari = null;
+    let hariRowspanCount = 0;
+    let hariStartIndex = 0;
+    
+    sorted.forEach((item, index) => {
+      if (item.hari !== currentHari) {
+        // New hari group - update previous group's rowspan
+        if (currentHari !== null && hariRowspanCount > 0) {
+          withRowspan[hariStartIndex].hariRowspan = hariRowspanCount;
+        }
+        
+        // Start new hari group
+        currentHari = item.hari;
+        hariRowspanCount = 1;
+        hariStartIndex = index;
+        withRowspan.push({ ...item, showHari: true, hariRowspan: 1 });
+      } else {
+        // Same hari - increment count and mark as hidden
+        hariRowspanCount++;
+        withRowspan.push({ ...item, showHari: false, hariRowspan: 0 });
+      }
+    });
+    
+    // Update last group's rowspan
+    if (currentHari !== null && hariRowspanCount > 0 && hariStartIndex < withRowspan.length) {
+      withRowspan[hariStartIndex].hariRowspan = hariRowspanCount;
+    }
+    
+    return withRowspan;
   });
 
   const processedGuruItems = computed(() => {
-    return currentItems.value
-      .slice()
-      .sort((a, b) => {
-        if (a.hari_index !== b.hari_index) return a.hari_index - b.hari_index;
-        return (a.start || 0) - (b.start || 0);
-      })
-      .map(item => ({
-        hari: item.hari,
-        start: item.start,
-        kelas: item.kelas_nama || item.kelas_id,
-        mapel: item.mapel_nama || item.mapel_id,
-        size: item.size
-      }));
+    const expanded = [];
+    
+    currentItems.value.forEach(item => {
+      const slots = item.slots || [];
+      const size = item.size || slots.length || 1;
+      
+      if (size === 1 || slots.length === 1) {
+        // Single slot - just add time
+        const slotNum = slots[0] || item.start || 1;
+        expanded.push({
+          hari: item.hari,
+          slot: slotNum,
+          waktu: getJPTime(slotNum),
+          kelas: item.kelas_nama || item.kelas_id,
+          mapel: item.mapel_nama || item.mapel_id,
+          isContinuation: false
+        });
+      } else {
+        // Multiple slots - expand into separate rows
+        slots.forEach((slotNum, idx) => {
+          expanded.push({
+            hari: item.hari,
+            slot: slotNum,
+            waktu: getJPTime(slotNum),
+            kelas: item.kelas_nama || item.kelas_id,
+            mapel: item.mapel_nama || item.mapel_id,
+            isContinuation: idx > 0 // Flag for UI styling
+          });
+        });
+      }
+    });
+    
+    // Sort by hari_index and slot
+    const sorted = expanded.sort((a, b) => {
+      const hariA = dayNames.value.indexOf(a.hari);
+      const hariB = dayNames.value.indexOf(b.hari);
+      if (hariA !== hariB) return hariA - hariB;
+      return a.slot - b.slot;
+    });
+    
+    // Add rowspan info for hari column
+    const withRowspan = [];
+    let currentHari = null;
+    let hariRowspanCount = 0;
+    let hariStartIndex = 0;
+    
+    sorted.forEach((item, index) => {
+      if (item.hari !== currentHari) {
+        // New hari group - update previous group's rowspan
+        if (currentHari !== null && hariRowspanCount > 0) {
+          withRowspan[hariStartIndex].hariRowspan = hariRowspanCount;
+        }
+        
+        // Start new hari group
+        currentHari = item.hari;
+        hariRowspanCount = 1;
+        hariStartIndex = index;
+        withRowspan.push({ ...item, showHari: true, hariRowspan: 1 });
+      } else {
+        // Same hari - increment count and mark as hidden
+        hariRowspanCount++;
+        withRowspan.push({ ...item, showHari: false, hariRowspan: 0 });
+      }
+    });
+    
+    // Update last group's rowspan
+    if (currentHari !== null && hariRowspanCount > 0 && hariStartIndex < withRowspan.length) {
+      withRowspan[hariStartIndex].hariRowspan = hariRowspanCount;
+    }
+    
+    return withRowspan;
   });
 
   const filteredKelasList = computed(() => {

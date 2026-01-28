@@ -35,7 +35,8 @@
         <table class="min-w-full border-collapse table-fixed">
           <thead>
             <tr>
-              <th class="border px-2 py-2 w-16 text-xs uppercase bg-gray-50">Jam ke</th>
+              <th class="border px-2 py-2 w-24 text-xs uppercase bg-gray-50">JP</th>
+              <th class="border px-2 py-2 w-32 text-xs uppercase bg-gray-50">Waktu</th>
               <th v-for="k in kelasOrderedForDay" :key="k.id" class="border px-2 py-2 text-xs uppercase bg-gray-50">
                 {{ k.nama }}
               </th>
@@ -44,12 +45,13 @@
           <tbody>
             <tr v-for="row in gridRows" :key="row.key || row.slot" :class="row.isBreak ? 'bg-yellow-50' : ''">
               <template v-if="row.isBreak">
-                <td :colspan="kelasOrderedForDay.length + 1" class="border px-2 py-1 text-center text-xs font-semibold text-yellow-700">
+                <td :colspan="kelasOrderedForDay.length + 2" class="border px-2 py-1 text-center text-xs font-semibold text-yellow-700">
                   {{ row.label || 'Istirahat' }}
                 </td>
               </template>
               <template v-else>
                 <td class="border px-2 py-1 text-center text-sm bg-gray-50 font-semibold">{{ row.slot }}</td>
+                <td class="border px-2 py-1 text-center text-xs bg-gray-50">{{ row.waktu }}</td>
                 <template v-for="cell in row.cells" :key="cell.key">
                   <td 
                     v-if="cell.show" 

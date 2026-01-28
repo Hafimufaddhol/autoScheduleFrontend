@@ -75,19 +75,40 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JP</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapel</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guru</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="(item, idx) in processedKelasItems" :key="idx" class="hover:bg-gray-50">
-              <td class="px-4 py-3 whitespace-nowrap">{{ item.hari }}</td>
-              <td class="px-4 py-3 whitespace-nowrap">{{ item.start }}</td>
-              <td class="px-4 py-3">{{ item.mapel }}</td>
+            <!-- <tr 
+              v-for="(item, idx) in processedKelasItems" 
+              :key="idx" 
+              :class="['hover:bg-gray-50', item.isContinuation ? 'bg-gray-50' : '']"
+            > -->
+            <tr 
+              v-for="(item, idx) in processedKelasItems" 
+              :key="idx" 
+              class='hover:bg-gray-50'
+            >
+              <td 
+                v-if="item.showHari" 
+                :rowspan="item.hariRowspan"
+                class="px-4 py-3 whitespace-nowrap align-top font-semibold text-gray-700 bg-gray-50"
+              >
+                {{ item.hari }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ item.slot }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ item.waktu }}</td>
+              <td class="px-4 py-3">
+                <span>
+                    {{ item.mapel }}
+                <!-- <span :class="item.isContinuation ? 'text-gray-400 italic' : ''"> -->
+                <!-- {{ item.isContinuation ? '↳ lanjutan' : item.mapel }} -->
+                </span>
+              </td>
               <td class="px-4 py-3">{{ item.guru }}</td>
-              <td class="px-4 py-3 whitespace-nowrap">{{ item.size }} JP</td>
             </tr>
           </tbody>
         </table>
