@@ -61,7 +61,7 @@
                         </button>
 
                         <!-- Delete Button -->
-                        <button type="button" @click="emit('delete', row)"
+                        <button type="button" @click="emit('delete', row.id)"
                             class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
                             <i class="fas fa-trash"></i>
                         </button>

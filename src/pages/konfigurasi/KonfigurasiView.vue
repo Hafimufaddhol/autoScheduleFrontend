@@ -217,6 +217,9 @@ import { Card, Alert, Input } from '@/components/ui'
 import { PageHeader } from '@/components'
 import konfigurasiRepository from '@/repositories/konfigurasiRepository'
 import mapelRepository from '@/repositories/mapelRepository'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+
+const { confirm } = useConfirmDialog()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -406,7 +409,13 @@ const handleAddPaket = async () => {
 }
 
 const handleDeletePaket = async (name) => {
-  if (!confirm(`Hapus paket "${name}"? Semua mapel yang memiliki paket ini akan menjadi umum.`)) return
+  const ok = await confirm({
+    title: 'Hapus Paket',
+    message: `Hapus paket "${name}"? Semua mapel yang memiliki paket ini akan menjadi umum.`,
+    confirmText: 'Ya, Hapus',
+    variant: 'danger'
+  })
+  if (!ok) return
   try {
     const res = await konfigurasiRepository.deletePaket(name)
     paket.value = res.paket || paket.value.filter(p => p !== name)

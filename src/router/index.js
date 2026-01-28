@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { MainLayout } from '../layouts'
-import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView } from '../pages'
+import { Dashboard, Users, GuruView, KelasView, MapelView, KonfigurasiView, NotFound } from '../pages'
 import { ClassEditorLayout, ClassInfoTab, ClassRuleTab, ClassJPMapelTab } from '../pages/kelas'
 import LoginPage from '../pages/auth/Login.vue' // halaman login kamu
 import { JadwalView, JadwalDetailView } from '../pages/jadwal'
@@ -19,11 +19,11 @@ const routes = [
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [
-      {
-        path: '',
-        name: 'Dashboard',
-        component: Dashboard
-      },
+      // {
+      //   path: '',
+      //   name: 'Dashboard',
+      //   component: Dashboard
+      // },
       {
         path: 'jadwal',
         name: 'Jadwal',
@@ -88,7 +88,8 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: { name: 'Dashboard' }
+    name: 'NotFound',
+    component: NotFound
   }
 ]
 

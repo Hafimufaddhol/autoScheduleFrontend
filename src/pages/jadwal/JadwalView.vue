@@ -171,6 +171,7 @@ import Modal from '@/components/ui/Modal.vue';
 import Input from '@/components/ui/Input.vue';
 import Alert from '@/components/ui/Alert.vue';
 import jadwalRepository from '@/repositories/jadwalRepository';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 export default {
   name: 'JadwalView',
@@ -245,8 +246,16 @@ export default {
       router.push({ name: 'JadwalDetail', params: { periode } });
     };
 
+    const { confirm } = useConfirmDialog();
+
     const handleDelete = async (periode) => {
-      if (!confirm(`Yakin ingin menghapus jadwal ${periode}?`)) return;
+      const ok = await confirm({
+        title: 'Hapus Jadwal',
+        message: `Yakin ingin menghapus jadwal ${periode}?`,
+        confirmText: 'Ya, Hapus',
+        variant: 'danger'
+      });
+      if (!ok) return;
 
       try {
         await jadwalRepository.delete(periode);

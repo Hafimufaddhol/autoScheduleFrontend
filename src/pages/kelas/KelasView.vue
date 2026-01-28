@@ -73,6 +73,9 @@ import ActionDropdown from '@/components/ui/ActionDropdown.vue'
 import { PageHeader } from '@/components'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import kelasRepository from '@/repositories/kelasRepository'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+
+const { confirm } = useConfirmDialog()
 
 const router = useRouter()
 
@@ -132,11 +135,17 @@ const goToCreate = () => {
 
 const handleDelete = async (id) => {
   if (!id) return
-  if (!confirm('Yakin ingin menghapus kelas ini? Semua aturan dan JP mapel terkait akan ikut dihapus.')) return
+  const ok = await confirm({
+    title: 'Hapus Kelas',
+    message: 'Yakin ingin menghapus kelas ini? Semua aturan dan JP mapel terkait akan ikut dihapus.',
+    confirmText: 'Ya, Hapus',
+    variant: 'danger'
+  })
+  if (!ok) return
   try {
-  await kelasRepository.delete(id)
-  showAlert('success', 'Kelas berhasil dihapus')
-  refresh()
+    await kelasRepository.delete(id)
+    showAlert('success', 'Kelas berhasil dihapus')
+    refresh()
   } catch (error) {
     showAlert('error', 'Gagal menghapus kelas')
     console.error(error)

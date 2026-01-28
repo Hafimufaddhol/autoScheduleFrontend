@@ -32,12 +32,16 @@
 
           <!-- Logo -->
           <router-link to="/" class="text-xl font-bold flex items-center lg:ml-2.5">
-            <img :src="logoUrl" class="h-6 mr-2" alt="Windster Logo">
+            <div class="w-8 h-8 mr-2 bg-cyan-600 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
+              </svg>
+            </div>
             <span class="self-center whitespace-nowrap">{{ brandName }}</span>
           </router-link>
 
           <!-- Desktop Search -->
-          <form @submit.prevent="handleSearch" class="hidden lg:block lg:pl-32">
+          <!-- <form @submit.prevent="handleSearch" class="hidden lg:block lg:pl-32">
             <label for="topbar-search" class="sr-only">Search</label>
             <div class="mt-1 relative lg:w-64">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -53,7 +57,7 @@
                 placeholder="Search"
               >
             </div>
-          </form>
+          </form> -->
         </div>
 
         <div class="flex items-center">
@@ -159,7 +163,7 @@ const props = defineProps({
   },
   brandName: {
     type: String,
-    default: ''
+    default: 'Aplikasi Penjadwalan Otomatis'
   },
   logoUrl: {
     type: String,

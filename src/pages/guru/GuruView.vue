@@ -134,6 +134,9 @@ import MyTable from '@/components/ui/MyTable.vue'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import guruRepository from '@/repositories/guruRepository'
 import mapelRepository from '@/repositories/mapelRepository'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+
+const { confirm } = useConfirmDialog()
 
 const columns = [
   { key: 'nama', label: 'Nama', sortable: true },
@@ -288,7 +291,13 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('Yakin ingin menghapus guru ini?')) return
+  const ok = await confirm({
+    title: 'Hapus Guru',
+    message: 'Yakin ingin menghapus guru ini?',
+    confirmText: 'Ya, Hapus',
+    variant: 'danger'
+  })
+  if (!ok) return
 
   try {
     await guruRepository.delete(id)

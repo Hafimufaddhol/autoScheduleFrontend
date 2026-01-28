@@ -6,13 +6,13 @@
         <!-- Header Text Slot -->
         <div class="text-center mb-8">
           <div class="w-16 h-16 mx-auto mb-4 bg-cyan-600 rounded-full flex items-center justify-center">
+            <!-- Calendar/Schedule Icon -->
             <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4c0 .55-.45 1-1 1s-1-.45-1-1v-4H7c-.55 0-1-.45-1-1s.45-1 1-1h4V7c0-.55.45-1 1-1s1 .45 1 1v4h4c.55 0 1 .45 1 1s-.45 1-1 1z" />
+              <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900 mb-2">Masuk ke Sistem</h1>
-          <p class="text-gray-600">Silakan masukkan kredensial Anda</p>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">Masuk ke AutoSchedule</h1>
+          <p class="text-gray-600">Sistem Penjadwalan Otomatis Sekolah</p>
         </div>
 
         <!-- Alert Message -->
@@ -33,7 +33,7 @@
           <!-- Email Field -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input v-model="email" type="text" id="email"
+            <input v-model="email" type="text" id="email" autocomplete="email"
               class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors"
               placeholder="Masukkan email Anda" required>
           </div>
@@ -42,7 +42,7 @@
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Kata Sandi</label>
             <div class="relative">
-              <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password" autocomplete="current-password"
                 class="w-full px-3 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors"
                 placeholder="Masukkan kata sandi" required>
               <button type="button" @click="showPassword = !showPassword"
@@ -91,7 +91,7 @@
         <!-- Additional Text Slot -->
         <div class="mt-8 text-center text-sm text-gray-500">
           <p>Butuh bantuan? Hubungi administrator sistem</p>
-          <p class="mt-1">© 2025 Dinas Kesehatan</p>
+          <p class="mt-1">© 2025 AutoSchedule</p>
         </div>
       </div>
     </div>
@@ -101,21 +101,20 @@
         <!-- Background Image -->
         <div class="absolute inset-0 bg-cover bg-center" style="
             background-image: linear-gradient(135deg, rgba(6, 182, 212, 0.8), rgba(8, 145, 178, 0.9)), 
-                            url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 800%22><defs><pattern id=%22medical%22 x=%220%22 y=%220%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%221%22 fill=%22%23ffffff%22 opacity=%220.1%22/></pattern></defs><rect width=%221200%22 height=%22800%22 fill=%22url(%23medical)%22/></svg>');
+                            url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 800%22><defs><pattern id=%22grid%22 x=%220%22 y=%220%22 width=%2260%22 height=%2260%22 patternUnits=%22userSpaceOnUse%22><rect x=%220%22 y=%220%22 width=%2260%22 height=%2260%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%220.5%22 opacity=%220.1%22/></pattern></defs><rect width=%221200%22 height=%22800%22 fill=%22url(%23grid)%22/></svg>');
             clip-path: polygon(8rem 0, 100% 0, 100% 100%, 0 100%);
           ">
-          <!-- Medical Icons Decoration -->
+          <!-- School Schedule Icons Decoration -->
           <div class="absolute inset-0 flex items-center justify-center">
-            <div class="text-white/20 text-center">
+            <div class="text-white/30 text-center">
+              <!-- Calendar with Clock Icon -->
               <svg class="w-32 h-32 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  d="M19.5 3.09L15 7.59V4a1 1 0 0 0-2 0v3.59l-1.5-1.5a1 1 0 0 0-1.41 1.41L12 9.41l1.91-1.91A1 1 0 0 0 15 6.09L19.5 1.59a1 1 0 0 1 1.41 1.41z" />
-                <path
-                  d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm5 11h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 2 0v4h4a1 1 0 0 1 0 2z" />
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
               </svg>
               <div class="space-y-2 text-xl font-light">
-                <div>Sistem Informasi</div>
-                <div class="font-semibold">Dinas Kesehatan</div>
+                <div>Sistem Penjadwalan</div>
+                <div class="font-semibold text-2xl">AutoSchedule</div>
+                <div class="text-sm opacity-80 mt-4">Penjadwalan Otomatis untuk Sekolah</div>
               </div>
             </div>
           </div>
@@ -150,7 +149,7 @@ const redirectAfterLogin = () => {
   if (typeof redirect === 'string' && redirect) {
     router.push(redirect)
   } else {
-    router.push({ name: 'Dashboard' })
+    router.push({ name: 'Jadwal' })
   }
 }
 

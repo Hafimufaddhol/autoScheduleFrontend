@@ -223,6 +223,9 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import mapelRepository from '@/repositories/mapelRepository'
 import kelasRepository from '@/repositories/kelasRepository'
 import kelasMapelJpRepository from '@/repositories/kelasMapelJpRepository'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+
+const { confirm } = useConfirmDialog()
 
 const props = defineProps({
   kelas: { type: Object, required: true },
@@ -392,7 +395,13 @@ const saveRow = async (row) => {
 
 const deleteRow = async (row) => {
   if (!row.entryId) return
-  if (!confirm(`Hapus JP mapel ${row.nama}?`)) return
+  const ok = await confirm({
+    title: 'Hapus JP Mapel',
+    message: `Hapus JP mapel ${row.nama}?`,
+    confirmText: 'Ya, Hapus',
+    variant: 'danger'
+  })
+  if (!ok) return
   row.saving = true
   try {
     await kelasMapelJpRepository.delete(row.entryId)

@@ -142,6 +142,9 @@ import { PageHeader } from '@/components'
 import { useRemoteTable } from '@/composables/useRemoteTable.js'
 import mapelRepository from '@/repositories/mapelRepository'
 import konfigurasiRepository from '@/repositories/konfigurasiRepository'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+
+const { confirm } = useConfirmDialog()
 
 const columns = [
   { key: 'nama', label: 'Nama', sortable: true },
@@ -273,7 +276,13 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('Yakin ingin menghapus mapel ini?')) return
+  const ok = await confirm({
+    title: 'Hapus Mapel',
+    message: 'Yakin ingin menghapus mapel ini?',
+    confirmText: 'Ya, Hapus',
+    variant: 'danger'
+  })
+  if (!ok) return
 
   try {
     await mapelRepository.delete(id)
