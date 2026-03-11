@@ -172,7 +172,7 @@
                   v-model.number="slot.total_slot"
                   type="number"
                   min="1"
-                  max="12"
+                  max="20"
                   label="Total Slot"
                   placeholder="Jumlah slot"
                 />

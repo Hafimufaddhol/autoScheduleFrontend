@@ -346,7 +346,10 @@ export function useJadwalDetail() {
       'MAPEL_TIDAK_DITEMUKAN': 'Mapel Tidak Ditemukan',
       'KELAS_TIDAK_DITEMUKAN': 'Kelas Tidak Ditemukan',
       'KAPASITAS_TIDAK_CUKUP': 'Kapasitas Tidak Cukup',
-      'JADWAL_BENTROK': 'Jadwal Bentrok'
+      'JADWAL_BENTROK': 'Jadwal Bentrok',
+      'PHASE_A_SUPPLY_SHORTAGE': 'Guru Tidak Mencukupi',
+      'PHASE_B_UNPLACED': 'Slot Waktu Penuh',
+      'PHASE_B_CP_INFEASIBLE': 'Penjadwalan Gagal',
     };
     return reasons[reason] || reason;
   };
@@ -357,7 +360,10 @@ export function useJadwalDetail() {
       'MAPEL_TIDAK_DITEMUKAN': 'warning',
       'KELAS_TIDAK_DITEMUKAN': 'warning',
       'KAPASITAS_TIDAK_CUKUP': 'secondary',
-      'JADWAL_BENTROK': 'danger'
+      'JADWAL_BENTROK': 'danger',
+      'PHASE_A_SUPPLY_SHORTAGE': 'danger',
+      'PHASE_B_UNPLACED': 'warning',
+      'PHASE_B_CP_INFEASIBLE': 'danger',
     };
     return variants[reason] || 'secondary';
   };
@@ -391,6 +397,10 @@ export function useJadwalDetail() {
   
   const deficitCount = computed(() => {
     return kelasMapelTidakTerpenuhi.value.length;
+  });
+
+  const peringatan = computed(() => {
+    return diagnostics.value?.peringatan || [];
   });
 
   const totalJP = computed(() => {
@@ -723,6 +733,7 @@ export function useJadwalDetail() {
     mapelTanpaGuru,
     kelasOverCapacity,
     deficitCount,
+    peringatan,
     totalJP,
     kelasOrderedForDay,
     gridRows,

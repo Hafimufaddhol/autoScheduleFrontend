@@ -66,6 +66,17 @@
       </div>
     </div>
 
+    <!-- Peringatan Umum -->
+    <div v-if="peringatan.length > 0" class="bg-amber-50 border border-amber-300 rounded-lg p-5 mb-6">
+      <h3 class="text-base font-bold text-amber-700 mb-3">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        Peringatan
+      </h3>
+      <ul class="list-disc list-inside space-y-1 text-sm text-amber-800">
+        <li v-for="(msg, idx) in peringatan" :key="idx">{{ msg }}</li>
+      </ul>
+    </div>
+
     <!-- Kelas Mapel Tidak Terpenuhi -->
     <div v-if="kelasMapelTidakTerpenuhi.length > 0" class="bg-white rounded-lg shadow-md p-6 mb-6">
       <h3 class="text-lg font-bold text-red-600 mb-4">
@@ -78,17 +89,20 @@
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mapel</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">JP Dibutuhkan</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alasan</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">JP</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="(item, idx) in kelasMapelTidakTerpenuhi" :key="idx" class="hover:bg-gray-50">
-              <td class="px-4 py-3">{{ item.kelas_nama || item.kelas_id }}</td>
-              <td class="px-4 py-3">{{ item.mapel_nama || item.mapel_id }}</td>
-              <td class="px-4 py-3">{{ item.jp }} JP</td>
-              <td class="px-4 py-3">
-                <Badge :variant="getReasonVariant(item.reason)">{{ formatReason(item.reason) }}</Badge>
+              <td class="px-4 py-3 whitespace-nowrap">{{ item.kelas_nama || item.kelas_id }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ item.mapel_nama || item.mapel_id }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ item.jp }} JP</td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <div class="flex flex-col gap-1">
+                  <span>{{ item.pesan || formatReason(item.reason) }}</span>
+                  <Badge :variant="getReasonVariant(item.reason)" class="w-fit">{{ formatReason(item.reason) }}</Badge>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -138,7 +152,7 @@
     </div>
 
     <!-- Phase Info -->
-    <div class="bg-white rounded-lg shadow-md p-6">
+    <!-- <div class="bg-white rounded-lg shadow-md p-6">
       <h3 class="text-lg font-bold text-gray-900 mb-4">
         <i class="fas fa-cogs mr-2"></i>
         Informasi Proses
@@ -161,7 +175,7 @@
           <p class="text-lg font-semibold">{{ diagnostics?.meta?.missing_guru_demand }} JP</p>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- No Issues Message -->
     <div v-if="kelasMapelTidakTerpenuhi.length === 0 && mapelTanpaGuru.length === 0 && kelasOverCapacity.length === 0" 
@@ -190,6 +204,7 @@ export default {
       mapelTanpaGuru,
       kelasOverCapacity,
       deficitCount,
+      peringatan,
       mapelMap,
       kelasMap,
       formatReason,
@@ -204,6 +219,7 @@ export default {
       mapelTanpaGuru,
       kelasOverCapacity,
       deficitCount,
+      peringatan,
       mapelMap,
       kelasMap,
       formatReason,
