@@ -63,6 +63,15 @@ const jadwalRepository = {
   // Update a single schedule item
   updateItem(periode, itemId, data) {
     return apiClient.put(`/jadwal/${periode}/items/${itemId}`, data).then(r => r.data)
+  },
+
+  // Export jadwal as PDF
+  // view: 'hari' | 'kelas' | 'guru'
+  exportPdf(periode, view = 'hari') {
+    return apiClient.get(`/jadwal/${periode}/export-pdf`, {
+      params: { view },
+      responseType: 'blob',
+    })
   }
 }
 

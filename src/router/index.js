@@ -19,11 +19,11 @@ const routes = [
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [
-      // {
-      //   path: '',
-      //   name: 'Dashboard',
-      //   component: Dashboard
-      // },
+      {
+        path: '',
+        name: 'Dashboard',
+        component: Dashboard
+      },
       {
         path: 'jadwal',
         name: 'Jadwal',

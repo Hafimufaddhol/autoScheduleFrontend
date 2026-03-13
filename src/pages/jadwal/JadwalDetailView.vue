@@ -11,6 +11,47 @@
           <p class="mt-2 text-gray-600">Detail jadwal pelajaran</p>
         </div>
       </div>
+
+      <!-- Export PDF Dropdown -->
+      <div v-if="jadwalStatus?.status === 'ready'" class="relative" ref="exportDropdownRef">
+        <button
+          @click="toggleExportDropdown"
+          :disabled="exporting"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm shadow-sm hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <i :class="exporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-pdf'" class="text-sm"></i>
+          <span>{{ exporting ? 'Mengekspor...' : 'Ekspor PDF' }}</span>
+          <i v-if="!exporting" class="fas fa-chevron-down text-xs ml-1"></i>
+        </button>
+        <transition name="fade">
+          <div
+            v-if="exportDropdownOpen && !exporting"
+            class="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-gray-200 bg-white shadow-xl"
+          >
+            <button
+              @click="handleExportPdf('hari')"
+              class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-gray-50 rounded-t-xl"
+            >
+              <i class="fas fa-calendar-day text-cyan-600 w-4"></i>
+              <span>Per Hari</span>
+            </button>
+            <button
+              @click="handleExportPdf('kelas')"
+              class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-gray-50"
+            >
+              <i class="fas fa-school text-cyan-600 w-4"></i>
+              <span>Per Kelas</span>
+            </button>
+            <button
+              @click="handleExportPdf('guru')"
+              class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-gray-50 rounded-b-xl"
+            >
+              <i class="fas fa-chalkboard-teacher text-cyan-600 w-4"></i>
+              <span>Per Guru</span>
+            </button>
+          </div>
+        </transition>
+      </div>
     </div>
 
     <!-- Status Bar -->
@@ -136,6 +177,7 @@ import KelasTab from './tabs/KelasTab.vue';
 import GuruTab from './tabs/GuruTab.vue';
 import EditModal from './components/EditModal.vue';
 import { useJadwalDetail } from './composables/useJadwalDetail';
+import jadwalRepository from '@/repositories/jadwalRepository';
 
 export default {
   name: 'JadwalDetailView',
@@ -178,6 +220,11 @@ export default {
     // Edit modal states
     const showEditModal = ref(false);
     const editBlock = ref(null);
+
+    // Export PDF states
+    const exporting = ref(false);
+    const exportDropdownOpen = ref(false);
+    const exportDropdownRef = ref(null);
 
     // Initialize periode from route
     initPeriode(route.params.periode);
@@ -222,7 +269,42 @@ export default {
       router.push({ name: 'Jadwal' });
     };
 
+    // Export PDF functions
+    const toggleExportDropdown = () => {
+      exportDropdownOpen.value = !exportDropdownOpen.value;
+    };
+
+    const handleExportPdf = async (view) => {
+      exportDropdownOpen.value = false;
+      exporting.value = true;
+      try {
+        const response = await jadwalRepository.exportPdf(periode.value, view);
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `jadwal-${periode.value}-per-${view}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Export PDF error:', err);
+        error.value = 'Gagal mengekspor PDF. Silakan coba lagi.';
+      } finally {
+        exporting.value = false;
+      }
+    };
+
+    // Close export dropdown when clicking outside
+    const handleClickOutside = (e) => {
+      if (exportDropdownRef.value && !exportDropdownRef.value.contains(e.target)) {
+        exportDropdownOpen.value = false;
+      }
+    };
+
     onMounted(async () => {
+      document.addEventListener('click', handleClickOutside);
       await Promise.all([loadKonfigurasi(), loadReferences()]);
       const status = await loadJadwalStatus();
       
@@ -233,6 +315,7 @@ export default {
     });
 
     onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside);
       resetState();
     });
 
@@ -244,13 +327,18 @@ export default {
       activeTab,
       showEditModal,
       editBlock,
+      exporting,
+      exportDropdownOpen,
+      exportDropdownRef,
       switchTab,
       openEditModal,
       closeEditModal,
       handleEditSaved,
       getStatusVariant,
       formatDate,
-      goBack
+      goBack,
+      toggleExportDropdown,
+      handleExportPdf
     };
   }
 };
