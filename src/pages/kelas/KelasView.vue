@@ -153,7 +153,7 @@ const handleDelete = async (id) => {
 }
 
 onMounted(() => {
-  refresh()
+  // refresh()
 })
 
 onBeforeUnmount(() => {

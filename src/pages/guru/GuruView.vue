@@ -310,7 +310,7 @@ const handleDelete = async (id) => {
 }
 
 onMounted(() => {
-  refresh()
+  // refresh()
   fetchMapels()
 })
 

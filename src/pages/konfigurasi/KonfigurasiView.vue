@@ -20,20 +20,6 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              v-model.number="form.min_jp_per_mapel_per_minggu"
-              type="number"
-              min="1"
-              label="Min JP/Mapel/Minggu"
-              required
-            />
-            <Input
-              v-model.number="form.max_jp_per_mapel_per_minggu"
-              type="number"
-              min="1"
-              label="Max JP/Mapel/Minggu"
-              required
-            />
-            <Input
               v-model.number="form.guru_max_jp_per_hari"
               type="number"
               min="1"
@@ -328,8 +314,6 @@ const loading = ref(false)
 const submitting = ref(false)
 
 const form = ref({
-  min_jp_per_mapel_per_minggu: 2,
-  max_jp_per_mapel_per_minggu: 5,
   guru_max_jp_per_hari: 5,
   default_slot_harian: [],
   olahraga_mapel_ids: [],
@@ -374,6 +358,11 @@ const showAlert = (type, message) => {
   setTimeout(() => {
     alert.value.show = false
   }, 3000)
+}
+
+const scrollToTop = () => {
+  if (typeof window === 'undefined') return
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const normalizeSlotHarian = (raw) => {
@@ -427,8 +416,6 @@ const fetchKonfigurasi = async () => {
     const data = response.data || {}
     
     form.value = {
-      min_jp_per_mapel_per_minggu: data.min_jp_per_mapel_per_minggu || 2,
-      max_jp_per_mapel_per_minggu: data.max_jp_per_mapel_per_minggu || 5,
       guru_max_jp_per_hari: data.guru_max_jp_per_hari || 5,
       default_slot_harian: normalizeSlotHarian(data.default_slot_harian),
       olahraga_mapel_ids: normalizeOlahragaIds(data.olahraga_mapel_ids),
@@ -522,6 +509,7 @@ const handleSubmit = async () => {
   try {
     await konfigurasiRepository.update(form.value)
     showAlert('success', 'Konfigurasi berhasil disimpan')
+    scrollToTop()
   } catch (error) {
     showAlert('error', 'Gagal menyimpan konfigurasi')
     console.error(error)

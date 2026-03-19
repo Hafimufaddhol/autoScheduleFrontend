@@ -5,7 +5,10 @@
                 <tr>
                     <th v-for="col in columns" :key="col.key" scope="col"
                         class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide select-none"
-                        :class="col.sortable === false ? 'cursor-default text-gray-700' : 'cursor-pointer'"
+                        :class="[
+                            col.sortable === false ? 'cursor-default text-gray-700' : 'cursor-pointer',
+                            col.key === 'actions' ? 'w-px whitespace-nowrap text-right' : ''
+                        ]"
                         @click="handleColumnClick(col)">
                         <div class="flex items-center space-x-1">
                             <span>{{ col.label }}</span>
@@ -22,8 +25,8 @@
 
 
                     <th v-if="showActions" scope="col"
-                        class="px-6 py-3 text-left text-sm font-semibold text-gray-900 uppercase tracking-wide cursor-pointer">
-                        Action
+                        class="px-6 py-3 text-center text-sm font-semibold text-gray-900 uppercase tracking-wide cursor-pointer">
+                        Aksi
                     </th>
                 </tr>
             </thead>
@@ -45,7 +48,8 @@
 
                 <!-- Data rows -->
                 <tr v-for="row in data" :key="row.id" class="hover:bg-gray-50">
-                    <td v-for="col in columns" :key="col.key" class="px-6 py-4 text-sm text-gray-900">
+                    <td v-for="col in columns" :key="col.key" class="px-6 py-4 text-sm text-gray-900"
+                        :class="col.key === 'actions' ? 'w-px whitespace-nowrap text-right' : ''">
                         <!-- Scoped slot untuk custom cell -->
                         <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                             <!-- fallback -->
@@ -53,7 +57,7 @@
                         </slot>
                     </td>
 
-                    <td v-if="showActions" class="p-4 whitespace-nowrap space-x-2 text-right">
+                    <td v-if="showActions" class="p-4 whitespace-nowrap space-x-2 text-center">
                         <!-- Edit Button -->
                         <button type="button" @click="emit('edit', row)"
                             class="text-white bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-200 font-medium rounded-lg text-base inline-flex items-center justify-center px-4 py-3">
