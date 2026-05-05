@@ -55,15 +55,30 @@
       <div
         v-for="j in jadwalList"
         :key="j.periode"
-        @click="viewJadwal(j.periode)"
-        class="p-5 rounded-lg shadow-sm bg-white cursor-pointer border border-gray-200 transform transition duration-150 hover:shadow-lg hover:-translate-y-1 hover:border-cyan-500"
+        @click="!isPolling(j.periode) && viewJadwal(j.periode)"
+        :class="[
+          'p-5 rounded-lg shadow-sm bg-white border border-gray-200 transform transition duration-150',
+          isPolling(j.periode)
+            ? 'cursor-wait opacity-80'
+            : 'cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-cyan-500'
+        ]"
       >
         <div class="flex justify-between items-start">
           <div class="flex-1">
             <div class="font-semibold text-lg text-gray-900 mb-2">{{ j.periode }}</div>
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs text-gray-500">Status:</span>
-              <Badge :label="j.status" :variant="getStatusVariant(j.status)" />
+              <Badge :label="getStatusLabel(j.status)" :variant="getStatusVariant(j.status)" />
+            </div>
+            <!-- Progress indicator saat polling -->
+            <div v-if="isPolling(j.periode)" class="mt-2">
+              <div class="flex items-center gap-2 text-xs text-cyan-600">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Algoritma sedang berjalan, mohon tunggu...</span>
+              </div>
+              <div class="mt-1 w-full bg-gray-200 rounded-full h-1.5">
+                <div class="bg-cyan-500 h-1.5 rounded-full animate-pulse" style="width: 60%"></div>
+              </div>
             </div>
             <div v-if="j.created_at" class="text-xs text-gray-400 mt-2">
               <i class="far fa-clock mr-1"></i>
@@ -71,7 +86,12 @@
             </div>
           </div>
           <div class="ml-4 flex gap-2">
-            <button @click.stop="handleDelete(j.periode)" title="Hapus jadwal" class="text-red-600 hover:text-red-800 p-2">
+            <button
+              v-if="!isPolling(j.periode)"
+              @click.stop="handleDelete(j.periode)"
+              title="Hapus jadwal"
+              class="text-red-600 hover:text-red-800 p-2"
+            >
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -147,13 +167,26 @@
     <Modal :isOpen="showGenerateModal" @close="closeGenerateModal" title="Generate Jadwal" :showFooter="false">
       <form @submit.prevent="handleGenerate">
         <div class="space-y-4">
-          <Input v-model="generateForm.periode" label="Periode" placeholder="Contoh: 2024-Ganjil" required />
-          <p class="text-sm text-gray-600">
-            Proses generate jadwal akan berjalan di background. Status dapat dilihat pada card jadwal.
-          </p>
+          <Input
+            v-model="generateForm.periode"
+            label="ID Periode"
+            placeholder="Contoh: 2025_1"
+            required
+          />
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            <i class="fas fa-info-circle mr-1"></i>
+            Proses generate jadwal berjalan di <strong>background</strong> (~10 menit).
+            Status akan diperbarui otomatis tanpa perlu refresh halaman.
+          </div>
           <div class="flex justify-end gap-2 mt-4">
             <BaseButton label="Batal" variant="secondary" @click="closeGenerateModal" />
-            <BaseButton label="Generate" icon="fas fa-play" type="submit" :loading="generating" />
+            <BaseButton
+              label="Generate"
+              icon="fas fa-play"
+              type="submit"
+              :loading="generating"
+              :disabled="generating"
+            />
           </div>
         </div>
       </form>
@@ -193,6 +226,8 @@ export default {
     const generating = ref(false);
     const generateForm = ref({ periode: '' });
     const alert = ref({ show: false, type: 'success', message: '' });
+    // Set periode yang sedang di-polling (sedang running di background)
+    const pollingPeriodes = ref(new Set());
 
     const pagination = ref({
       page: 1,
@@ -278,19 +313,60 @@ export default {
     };
 
     const handleGenerate = async () => {
-      if (!generateForm.value.periode) return;
+      if (!generateForm.value.periode?.trim()) return;
+      const periode = generateForm.value.periode.trim();
 
       generating.value = true;
       try {
-        showAlert('info', 'Fitur generate jadwal belum diimplementasikan. Silakan tunggu update selanjutnya.');
+        // 1. Fire-and-forget ke backend → Cloud Tasks
+        await jadwalRepository.generate(periode);
+
         closeGenerateModal();
+        showAlert('info', `Jadwal ${periode} mulai dibuat. Memantau status secara otomatis...`);
+
+        // 2. Tambahkan card "pending" ke list jika belum ada
+        const existing = jadwalList.value.find(j => j.periode === periode);
+        if (!existing) {
+          jadwalList.value.unshift({ periode, status: 'pending', created_at: new Date().toISOString() });
+        } else {
+          existing.status = 'pending';
+        }
+
+        // 3. Tandai sebagai sedang di-polling
+        pollingPeriodes.value = new Set([...pollingPeriodes.value, periode]);
+
+        // 4. Polling status sampai selesai
+        jadwalRepository.pollStatus(
+          periode,
+          ({ status }) => {
+            // Update status card secara real-time
+            const card = jadwalList.value.find(j => j.periode === periode);
+            if (card) card.status = status;
+          }
+        ).then(({ status }) => {
+          pollingPeriodes.value = new Set([...pollingPeriodes.value].filter(p => p !== periode));
+          if (status === 'ready') {
+            showAlert('success', `✅ Jadwal ${periode} berhasil dibuat!`);
+            loadJadwal({ page: currentPage.value, pageSize: localPageSize.value, search: searchQuery.value });
+          } else {
+            showAlert('error', `❌ Gagal membuat jadwal ${periode}. Lihat diagnostics untuk detail.`);
+          }
+        }).catch((err) => {
+          pollingPeriodes.value = new Set([...pollingPeriodes.value].filter(p => p !== periode));
+          console.error('Polling error:', err);
+          showAlert('error', `Timeout atau error saat memantau jadwal ${periode}`);
+        });
+
       } catch (err) {
         console.error('Error generating jadwal:', err);
-        showAlert('error', 'Gagal membuat jadwal');
+        const msg = err?.response?.data?.message || err?.response?.data?.error || 'Gagal memulai generate jadwal';
+        showAlert('error', msg);
       } finally {
         generating.value = false;
       }
     };
+
+    const isPolling = (periode) => pollingPeriodes.value.has(periode);
 
     const totalItems = computed(() => pagination.value.total_items);
     const totalPages = computed(() => Math.max(pagination.value.total_pages, 1));
@@ -381,10 +457,24 @@ export default {
       const variants = {
         ready: 'success',
         pending: 'warning',
+        processing: 'warning',
+        failed: 'danger',
         error: 'danger',
         not_found: 'secondary'
       };
       return variants[status] || 'secondary';
+    };
+
+    const getStatusLabel = (status) => {
+      const labels = {
+        ready: 'Siap',
+        pending: 'Menunggu',
+        processing: 'Diproses',
+        failed: 'Gagal',
+        error: 'Error',
+        not_found: 'Tidak Ditemukan'
+      };
+      return labels[status] || status;
     };
 
     const formatDate = (timestamp) => {
@@ -413,6 +503,7 @@ export default {
       generating,
       generateForm,
       alert,
+      pollingPeriodes,
       totalItems,
       totalPages,
       startIndex,
@@ -420,6 +511,7 @@ export default {
       displayStart,
       displayEnd,
       visiblePages,
+      isPolling,
       viewJadwal,
       handleDelete,
       openGenerateModal,
@@ -431,6 +523,7 @@ export default {
       nextPage,
       handlePageSizeChange,
       getStatusVariant,
+      getStatusLabel,
       formatDate
     };
   }

@@ -4,7 +4,7 @@ function buildQuery(opts = {}) {
   const params = new URLSearchParams()
   if (opts.page) params.set('page', opts.page)
   if (opts.pageSize) params.set('page_size', opts.pageSize)
-  if (opts.search) params.set('search', opts.search)
+  if (opts.search) params.set('search', Array.isArray(opts.search) ? opts.search.join(',') : opts.search)
   if (opts.sort) params.set('sort', Array.isArray(opts.sort) ? opts.sort.join(',') : opts.sort)
   if (opts.filters) {
     Object.entries(opts.filters).forEach(([k, v]) => {
@@ -28,7 +28,7 @@ const jadwalRepository = {
     return apiClient.get(`/jadwal/${periode}`)
   },
 
-  // Get jadwal status only (without items) - for lazy loading
+  // Get jadwal status only (without items) - for polling
   getStatus(periode) {
     return apiClient.get(`/jadwal/${periode}/status`).then(r => r.data)
   },
@@ -55,9 +55,51 @@ const jadwalRepository = {
     return apiClient.delete(`/jadwal/${periode}`)
   },
 
-  // Trigger create/generate jadwal (future implementation)
-  create(periode) {
-    return apiClient.post('/jadwal/create', { periode })
+  /**
+   * Trigger generate jadwal via Cloud Tasks (fire-and-forget).
+   * Backend merespons segera dengan status "pending".
+   * Gunakan pollStatus() untuk memantau progres.
+   */
+  generate(periode) {
+    return apiClient.post('/jadwal/generate', { periode }).then(r => r.data)
+  },
+
+  /**
+   * Poll status jadwal sampai status terminal (ready / failed).
+   * @param {string} periode
+   * @param {function} onProgress - callback({ status, periode }) tiap tick
+   * @param {number} intervalMs - interval polling (default 5 detik)
+   * @param {number} maxWaitMs - max tunggu sebelum timeout (default 15 menit)
+   * @returns {Promise<{status: string, periode: string}>}
+   */
+  pollStatus(periode, onProgress = null, intervalMs = 30000, maxWaitMs = 15 * 60 * 1000) {
+    const TERMINAL_STATUSES = ['ready', 'failed']
+    const startedAt = Date.now()
+
+    return new Promise((resolve, reject) => {
+      const tick = async () => {
+        try {
+          const result = await jadwalRepository.getStatus(periode)
+          const status = result?.data?.status ?? result?.status
+
+          if (onProgress) onProgress({ status, periode })
+
+          if (TERMINAL_STATUSES.includes(status)) {
+            return resolve({ status, periode })
+          }
+
+          if (Date.now() - startedAt > maxWaitMs) {
+            return reject(new Error(`Timeout menunggu jadwal ${periode} selesai`))
+          }
+
+          setTimeout(tick, intervalMs)
+        } catch (err) {
+          reject(err)
+        }
+      }
+
+      setTimeout(tick, intervalMs)
+    })
   },
 
   // Update a single schedule item
