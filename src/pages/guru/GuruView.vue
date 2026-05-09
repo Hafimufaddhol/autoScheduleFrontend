@@ -303,9 +303,10 @@ const handleDelete = async (id) => {
     await guruRepository.delete(id)
     showAlert('success', 'Guru berhasil dihapus')
     refresh()
-  } catch (error) {
-    showAlert('error', 'Gagal menghapus guru')
-    console.error(error)
+  } catch (err) {
+    const msg = err?.response?.data?.error || 'Gagal menghapus guru'
+    showAlert('error', msg)
+    console.error(err)
   }
 }
 

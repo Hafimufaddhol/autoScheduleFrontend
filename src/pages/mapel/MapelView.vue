@@ -516,9 +516,10 @@ const handleDelete = async (id) => {
     await mapelRepository.delete(id)
     showAlert('success', `${label.charAt(0).toUpperCase() + label.slice(1)} berhasil dihapus`)
     refresh()
-  } catch (error) {
-    showAlert('error', `Gagal menghapus ${label}`)
-    console.error(error)
+  } catch (err) {
+    const msg = err?.response?.data?.error || `Gagal menghapus ${label}`
+    showAlert('error', msg)
+    console.error(err)
   }
 }
 

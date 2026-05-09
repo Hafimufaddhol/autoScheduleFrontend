@@ -146,9 +146,10 @@ const handleDelete = async (id) => {
     await kelasRepository.delete(id)
     showAlert('success', 'Kelas berhasil dihapus')
     refresh()
-  } catch (error) {
-    showAlert('error', 'Gagal menghapus kelas')
-    console.error(error)
+  } catch (err) {
+    const msg = err?.response?.data?.error || 'Gagal menghapus kelas'
+    showAlert('error', msg)
+    console.error(err)
   }
 }
 
